@@ -12,6 +12,7 @@ project/plugins/project/
 # Scala-IDE specific
 .scala_dependencies
 .ensime
+.ensime_lucene
 
 # Play framework
 check-my-pull/logs
