@@ -11,3 +11,21 @@ project/plugins/project/
 
 # Scala-IDE specific
 .scala_dependencies
+.ensime
+
+# Play framework
+check-my-pull/logs
+check-my-pull/project/project
+check-my-pull/project/target
+check-my-pull/target
+check-my-pull/tmp
+check-my-pull/.history
+check-my-pull/dist
+check-my-pull/.idea
+check-my-pull/*.iml
+check-my-pull/out
+check-my-pull/.idea_modules
+check-my-pull/.classpath
+check-my-pull/.project
+check-my-pull/RUNNING_PID
+check-my-pull/.settings
