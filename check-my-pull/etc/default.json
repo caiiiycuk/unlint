@@ -1,0 +1,5 @@
+{
+    "java": [
+        "checkstyle -f xml -c /home/caiiiycuk/tmp/4geo-java.xml $filename"
+    ]
+}

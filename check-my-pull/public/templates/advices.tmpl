@@ -1,0 +1,62 @@
+<div>
+    <h4 class="advice-file">
+        <% var errorLines = Object.keys(errors)%>
+        <% var errorsCount = errorLines.length; %>
+        <% var haveErrors = (errorsCount > 0); %>
+        <%=filename%>
+        <% if (haveErrors) { %>
+            <span style="color: red;"><%=errorsCount%> problem(s)...</span>
+        <% } else { %>
+            <span style="color: green;">Ok</span>
+        <% } %>
+    </h4>
+   <div class="source">
+        <% if (haveErrors) { %>
+            <% for (var i=0; i < errorsCount; ++i) { %>
+                <% var line = parseInt(errorLines[i]); %>
+                <% var onLine = errors[line]; %>
+                    <div class="advice-block">
+                        <div class="advice-source">
+                            <% for (var j = line - 5; j <= line; ++j) { %>
+                                <% if (j>0) { %>
+                                    <div><%=j%>:<pre><%=source[j - 1]%></pre></div>
+                                <% } %>
+                            <% } %>
+                        </div>
+                        <div class="problems-block">
+                            <ul>
+                                <% for (var j = 0; j < onLine.length; ++j) { %>
+                                    <% var error = onLine[j]; %>
+                                    <li>[<%=error["severity"]%>]: <%=error["message"]%></li>
+                                <% } %>
+                            </ul>
+                        </div>
+                        <div class="advice-source">
+                            <% for (var j = line + 1; j <= line + 5; ++j) { %>
+                                <% if (j<=source.length) { %>
+                                    <div><%=j%>:<pre><%=source[j - 1]%></pre></div>
+                                <% } %>
+                            <% } %>
+                        </div>
+                    </div>
+            <% } %>
+        <% } %>
+    </div>
+</div>
+
+        <!--
+//
+
+
+    
+// line
+// "529"
+
+    
+// message
+// "Line is longer than 120 characters."
+
+    
+// severity
+// "warning"
+-->

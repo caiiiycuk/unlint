@@ -1,79 +1,53 @@
 package advice.engine
 
 import play.Logger
+import play.api.Play
+import play.api.libs.json._
 
-class SourceFile(filename: String, rawurl: String, source: String)
+import scala.io.Source
+import sys.process._
+
+import org.apache.commons.io.FileUtils
+import java.io.File
+
+import scala.xml._
 
 object AdviceEngine {
-    val urlPattern = "https://github.com/(.*)/(.*)/pull/(.*)".r
-    val filenamePattern = ".*\"filename\":\"([^\"]*)\".*".r
-    val rawurlPattern = ".*\"raw_url\":\"([^\"]*)\".*".r
+    val checksFileOption = Play.current.configuration.getString("checks.file")
+    val checksFile = checksFileOption.getOrElse { throw new IllegalArgumentException("Option 'checks.file' not found") }
+    val checksJson = Source.fromFile(checksFile).mkString
+    val checks = Json.parse(checksJson)
 
-    def advice(url: String): Unit = {
-        url match {
-            case urlPattern(owner, repo, pull) => {
-                advice(owner, repo, pull)
+
+    def analyze(filename: String, extenstion: String, source: String) = {
+        val file = File.createTempFile("check-my-pull", "." + extenstion)
+
+        try {
+            val checkersJson = (checks \ extenstion)
+
+            val checkers = checkersJson.asOpt[List[String]].getOrElse(List())
+
+            if (!checkers.isEmpty) {
+                FileUtils.write(file, source, "utf8")
             }
 
-            case _ => {
-                throw new IllegalArgumentException(s"Invalid url $url")
+            for (
+                checker <- checkers;
+                command = checker.toString
+            ) yield {
+                val executeString = command.replaceAll("\\$filename", file.getAbsoluteFile().toString)
+                
+                try {
+                    XML.loadString(executeString.!!)
+                } catch {
+                    case e: Throwable =>
+                        Logger.debug(s"$filename, ($extenstion): Problem when executing '$executeString'", e)
+                    <xml></xml>
+                }
             }
+        } finally {
+            file.delete()
         }
-    }
-
-    def advice(owner: String, repo: String, pull: String): Unit = {
-        Logger.debug(s"Generate advice for $owner, $repo, $pull")
-        
-        val apiUrl = s"https://api.github.com/repos/$owner/$repo/pulls/$pull/files"
-        val response = readURL(apiUrl)
-
-        val filenames = filenamePattern.findAllIn(response)
-        for (m <- filenames) {
-            m
-
-            // println(m.group(1))
-        }
-        // val filenamePattern(filename) = response
-
-        // response match {
-        //     case filenamePattern(filename@_*) => 
-        //         // Logger.debug(filename.fileContents)
-        //         println(filename)
-        // }
-        
-
-
-
-        // val rawurlPattern(rawurl) = response
-        // val fileContents = readURL(rawurl)
-
-        // val sourceFile = SourceFile(filename, rawurl, fileContents)
-
-
-
-        Logger.debug("Well done...")
-    }
-
-    def readURL(url: String) = {
-        import play.api.libs.ws._
-        import com.ning.http.client.Realm._
-        import play.api.libs.concurrent._
-        import play.api.libs.concurrent.Execution.Implicits._
-
-        val promise = WS.url(url).withAuth("caiiiycuk", "pjjgfhr12", AuthScheme.BASIC).get()
-        
-        promise.await(3000).get.body
-        // val playPromise = new PlayPromise(promise).orTimeout("Timeout on github request", 1000)
-
-        // val response = playPromise.map {
-        //     either => 
-        //         either.fold(
-        //             response => response.body,
-        //             timeout => throw new IllegalStateException(timeout)
-        //         )
-        // }
-        // 
-        // response.value
     }
 
 }

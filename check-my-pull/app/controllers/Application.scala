@@ -4,52 +4,33 @@ import play.api._
 import play.api.mvc._
 
 import advice.engine.AdviceEngine
-import advice.engine.AdviceRequest
+import advice.engine.AdviceRequests
 
 import scala.concurrent.Future
 import play.api.libs.ws._
 import play.api.libs.concurrent._
 import play.api.libs.concurrent.Execution.Implicits._
+import com.ning.http.client.Realm._
 
 import play.api.libs.json._
 
 object Application extends Controller {
+  val extensionPattern = """^.+\.([^.]*)$""".r
   
   def index = Action {
-    // AdviceEngine.advice("https://github.com/4geo/web-dev/pull/150")
-
     Ok(views.html.index())
   }
 
-  def advice = Action { request =>
-    Ok("ok")
-    // request.body.asFormUrlEncoded.map { params =>
-    //     try {
-    //         val url = params.getOrElse("url", throw new IllegalArgumentException("url"))
-    //         val username = params.getOrElse("username", throw new IllegalArgumentException("username"))
-    //         val password = params.getOrElse("password", throw new IllegalArgumentException("password"))
-
-    //         Ok("0")   
-    //     } catch {
-    //         case e =>
-    //             BadRequest("ParameterNotSet: " + e.getMessage)
-    //     }
-    // } .getOrElse {
-    //     BadRequest("Parameters not found")
-    // }
-  }
-
   def changes = Action(parse.json) { request =>
-    // Logger.debug( request.body.asJson.mkString )
     try {
       val url = (request.body \ "url").as[String]
       val username = (request.body \ "username").as[String]
       val password = (request.body \ "password").as[String]
 
-      val adviceRequest = AdviceRequest.fromUrl(url)
-      adviceRequest.withAuth(username, password)
+      val changesRequest = AdviceRequests.changes(url)
+      changesRequest.withAuth(username, password)
 
-      val promise = adviceRequest.getChanges()
+      val promise = changesRequest.get()
 
       Async {
         promise.map { response =>
@@ -67,29 +48,46 @@ object Application extends Controller {
       case e: Throwable =>      
         BadRequest(e.getMessage)
     }
+  }
 
-    
-    // Ok("1")
+  def raw = Action(parse.json) { request =>
+    try {
+      val url = (request.body \ "url").as[String]
+      val username = (request.body \ "username").as[String]
+      val password = (request.body \ "password").as[String]
 
-    // request.body.asFormUrlEncoded.map { params =>
-    //   Logger.debug(params.toString())  
+      val rawRequest = AdviceRequests.raw(url)
+      rawRequest.withAuth(username, password)
 
-    //   try {
-    //     val url = params.getOrElse("url", throw new IllegalArgumentException("url"))
-    //     val username = params.getOrElse("username", throw new IllegalArgumentException("username"))
-    //     val password = params.getOrElse("password", throw new IllegalArgumentException("password"))
+      val promise = rawRequest.get()
 
-    //     Logger.debug(params.toString)
+      Async {
+        promise.map { response =>
+          Ok(response.body)
+        }
+      }
+    } catch {
+      case e: Throwable =>      
+        BadRequest(e.getMessage)
+    }
+  }
 
-    //     // val request = AdviceRequest.fromUrl(url.toString)
-    //     Ok("1")
-    //   } catch {
-    //     case e =>
-    //       BadRequest(e.getMessage)
-    //   }
-    // } .getOrElse {
-    //   BadRequest("Parameters not found")
-    // }
+  def analyze = Action(parse.json) { request =>
+    try {
+      val filename = (request.body \ "filename").as[String]
+      val source = (request.body \ "source").as[String]
+
+      filename match {
+        case extensionPattern(extension) => 
+          val advices = AdviceEngine.analyze(filename, extension, source)
+          Ok(<advice>{ advices.map(a => a) }</advice>)
+        case _ => 
+          Ok(<advice></advice>)
+      }
+    } catch {
+      case e: Throwable =>      
+        BadRequest(e.getMessage)
+    }
   }
 
 }
