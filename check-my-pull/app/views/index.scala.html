@@ -26,14 +26,12 @@
             <div class="section">
                 <h2>Changes in pull request</h2>
                 <div class="changes-container">
-                    <img src="@routes.Assets.at("images/ajax-loader.gif")" alt="Loading, please wait..."/>
                 </div>
             </div>
 
             <div class="section">
                 <h2>Collected advice</h2>
                 <div class="advice-container">
-                    <img src="@routes.Assets.at("images/ajax-loader.gif")" alt="Loading, please wait..."/>
                 </div>
             </div>
         </div>
@@ -53,12 +51,17 @@
                 </div>
             </div>
             <div class="control-group">
+                <div class="controls">
+                    <a style="cursor: pointer" onclick="toggleAuthBlock()">With authentication</a>
+                </div>
+            </div>
+            <div class="control-group auth-block">
                 <label class="control-label" for="username">Username</label>
                 <div class="controls">
                     <input name="username" type="text" value="" class="span2"/>
                 </div>
             </div>
-            <div class="control-group">
+            <div class="control-group auth-block">
                 <label class="control-label" for="password">Password</label>
                 <div class="controls">
                     <input name="password" type="password" value="" class="span2"/>

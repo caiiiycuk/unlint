@@ -66,7 +66,6 @@ function analyze(filename, source) {
         url: "/analyze",
         type: "POST",
         contentType: "text/json",
-        dataType: "xml",
         data: JSON.stringify({ 
             filename: filename,
             source: source
@@ -74,10 +73,25 @@ function analyze(filename, source) {
     };
 
     $.ajax(options)
-        .done(function(xml) {
-          renderAdvice(filename, source, xml)
+        .done(function(fileAdvice) {
+            if (typeof fileAdvice == 'string') {
+                renderSimpleAdvice(filename, source, fileAdvice);
+            } else {
+                renderAdvice(filename, source, fileAdvice);
+            }
         })
         .fail(error);
+}
+
+function renderSimpleAdvice(filename, source, fileAdvice) {
+    Templates.get("/assets/templates/advices.tmpl", function(template) {
+        var content = template({
+            fileAdvice: fileAdvice,
+            errors: {}
+        });
+
+        $('.advice-container').append(content);
+    });
 }
 
 function renderAdvice(filename, source, xml) {
@@ -126,4 +140,8 @@ function asObject(array) {
 
 function error(message) {
     alert('error ' + message);
+}
+
+function toggleAuthBlock() {
+    $(".auth-block").toggle();
 }

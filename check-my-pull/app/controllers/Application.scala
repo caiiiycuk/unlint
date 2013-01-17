@@ -2,6 +2,7 @@ package controllers
 
 import play.api._
 import play.api.mvc._
+import play.api.Play.current
 
 import advice.engine.AdviceEngine
 import advice.engine.AdviceRequests
@@ -77,17 +78,32 @@ object Application extends Controller {
       val filename = (request.body \ "filename").as[String]
       val source = (request.body \ "source").as[String]
 
-      filename match {
-        case extensionPattern(extension) => 
-          val advices = AdviceEngine.analyze(filename, extension, source)
-          Ok(<advice>{ advices.map(a => a) }</advice>)
-        case _ => 
-          Ok(<advice></advice>)
+      val promise = Akka.future {
+        analyzeFile(filename, source)
+      }
+      
+      Async {
+        promise.map { result => result }
       }
     } catch {
       case e: Throwable =>      
         BadRequest(e.getMessage)
     }
+  }
+
+  private def analyzeFile(filename: String, source: String) = {
+      filename match {
+        case extensionPattern(extension) => 
+          val advices = AdviceEngine.analyze(filename, extension, source)
+
+          if (advices.isEmpty) {
+            Ok("not checked")  
+          } else {
+            Ok(<advice>{ advices.map(a => a) }</advice>)              
+          }
+        case _ => 
+          Ok("not checked")
+      }
   }
 
 }

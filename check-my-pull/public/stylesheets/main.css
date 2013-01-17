@@ -109,3 +109,7 @@ body {
   border-bottom: 1px dashed green;
   padding: 5px;
 }
+
+.auth-block {
+  display: none;
+}
