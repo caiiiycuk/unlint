@@ -17,12 +17,13 @@ import play.api.libs.json._
 
 object Application extends Controller {
   val extensionPattern = """^.+\.([^.]*)$""".r
+  val requestMaxLength = 1024 * 1024 * 1024
   
   def index = Action {
     Ok(views.html.index())
   }
 
-  def changes = Action(parse.json) { request =>
+  def changes = Action(parse.json(maxLength = requestMaxLength)) { request =>
     try {
       val url = (request.body \ "url").as[String]
       val username = (request.body \ "username").as[String]
@@ -51,7 +52,7 @@ object Application extends Controller {
     }
   }
 
-  def raw = Action(parse.json) { request =>
+  def raw = Action(parse.json(maxLength = requestMaxLength)) { request =>
     try {
       val url = (request.body \ "url").as[String]
       val username = (request.body \ "username").as[String]
@@ -73,7 +74,7 @@ object Application extends Controller {
     }
   }
 
-  def analyze = Action(parse.json) { request =>
+  def analyze = Action(parse.json(maxLength = requestMaxLength)) { request =>
     try {
       val filename = (request.body \ "filename").as[String]
       val source = (request.body \ "source").as[String]

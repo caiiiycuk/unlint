@@ -1,15 +1,18 @@
 <div>
-    <h4 class="advice-file">
+    <a name="<%=filename%>"><h4 class="advice-file">
         <% var errorLines = Object.keys(errors)%>
         <% var errorsCount = errorLines.length; %>
         <% var haveErrors = (errorsCount > 0); %>
-        <%=filename%>
+        <% var adviceBlock = ''; %>
         <% if (haveErrors) { %>
-            <span style="color: red;"><%=errorsCount%> problem(s)...</span>
+            <% adviceBlock = '<span style="color: red;">'+ errorsCount + ' problem(s)...</span>'; %>
         <% } else { %>
-            <span style="color: green;">Ok [<%=fileAdvice%>]</span>
+            <% adviceBlock = '<span style="color: green;">Ok [' + fileAdvice + ']</span>'; %>
         <% } %>
-    </h4>
+        <%=filename%>
+        <%=adviceBlock%>
+        <% $("a[href='#" + filename + "']>div").html(adviceBlock); %>
+    </h4></a>
    <div class="source">
         <% if (haveErrors) { %>
             <% for (var i=0; i < errorsCount; ++i) { %>

@@ -6,7 +6,6 @@ function advice() {
     $('.advice').show();
 
     $('.changes-container').html("<img src='assets/images/ajax-loader.gif' alt='Loading, please wait...'/>");
-    $('.advice-container').html("<img src='assets/images/ajax-loader.gif' alt='Loading, please wait...'/>");
 
     url = $('[name="url"]').val();
     username = $('[name="username"]').val();
@@ -90,7 +89,7 @@ function renderSimpleAdvice(filename, source, fileAdvice) {
     Templates.get("/assets/templates/advices.tmpl", function(template) {
         var content = template({
             filename: filename,
-            source: source.split("\n"),
+            source: source.replace(/>/g, "&gt;").replace(/</g, "&lt;").split("\n"),
             fileAdvice: fileAdvice,
             errors: {}
         });
@@ -125,7 +124,7 @@ function renderAdvice(filename, source, xml) {
         var content = template({
             filename: filename,
             fileAdvice: 'checked',
-            source: source.split("\n"),
+            source: source.replace(/>/g, "&gt;").replace(/</g, "&lt;").split("\n"),
             errors: errors
         });
 
