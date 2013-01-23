@@ -1,3 +1,16 @@
+<%
+
+function isLineVisible(line, errors) {
+    for (var i = line - 5; i < line + 5; ++i) {
+        if (errors[i]) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+%>
 <div>
     <a name="<%=filename%>"><h4 class="advice-file">
         <% var errorLines = Object.keys(errors)%>
@@ -12,37 +25,34 @@
         <%=filename%>
         <%=adviceBlock%>
         <% $("a[href='#" + filename + "']>div").html(adviceBlock); %>
+        (<a href="<%=raw%>" target="_blank">RAW</a>)
     </h4></a>
    <div class="source">
         <% if (haveErrors) { %>
-            <% for (var i=0; i < errorsCount; ++i) { %>
-                <% var line = parseInt(errorLines[i]); %>
-                <% var onLine = errors[line]; %>
-                    <div class="advice-block">
-                        <div class="advice-source">
-                            <% for (var j = line - 5; j <= line; ++j) { %>
-                                <% if (j>0) { %>
-                                    <div><%=j%>:<pre><%=source[j - 1]%></pre></div>
-                                <% } %>
+                <div class="advice-block">
+                    <% for (var line = 1; line <= source.length; ++line) { %>
+                        <% var zeroBasedLine = line - 1; %>
+                        <% var errorsOnLine = errors[line]; %>                        
+                        <% var isVisible = isLineVisible(line, errors); %>
+                        <% var wrapperClass = errorsOnLine ? "advice-source-error" : "advice-source"; %>
+
+                        <% if (isVisible) { %>
+                            <div class="<%=wrapperClass%>"><%=line%>:<pre><%=source[zeroBasedLine]%></pre></div>
+
+                            <% if (errorsOnLine) { %>
+                                <div class="problems-block">
+                                    <ul>
+                                        <% for (var i = 0; i < errorsOnLine.length; ++i) { %>
+                                            <% var error = errorsOnLine[i]; %>
+                                            <li>[<%=error["severity"]%>]: <%=error["message"]%></li>
+                                        <% } %>
+                                    </ul>
+                                </div>
                             <% } %>
-                        </div>
-                        <div class="problems-block">
-                            <ul>
-                                <% for (var j = 0; j < onLine.length; ++j) { %>
-                                    <% var error = onLine[j]; %>
-                                    <li>[<%=error["severity"]%>]: <%=error["message"]%></li>
-                                <% } %>
-                            </ul>
-                        </div>
-                        <div class="advice-source">
-                            <% for (var j = line + 1; j <= line + 5; ++j) { %>
-                                <% if (j<=source.length) { %>
-                                    <div><%=j%>:<pre><%=source[j - 1]%></pre></div>
-                                <% } %>
-                            <% } %>
-                        </div>
-                    </div>
-            <% } %>
+                        <% } %>
+
+                    <% } %>
+                </div>
         <% } %>
     </div>
 </div>

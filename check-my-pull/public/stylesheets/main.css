@@ -88,17 +88,27 @@ body {
 }
 
 .problems-block {
-  margin: 5px 0px 5px 20px;
-  background: rgb(255,221,221);
-  padding: 10px 0px 5px 0px;
-  border:1px solid #333;
+    background: none repeat scroll 0% 0% rgb(222, 221, 255);
+    padding: 10px 0px 0px 25px;
+    margin: 0px 0px 0px 20px;
+    border-left: 1px solid rgb(51,51,51);
+    border-top: 1px dashed rgb(51,51,51);
+    border-bottom: 1px dashed rgb(51,51,51);
+    border: 1px solid rgb(51, 51, 51);
 }
 
 .advice-source {
-  margin: 5px 0px 5px 20px;
+  margin: 0px 0px 0px 20px;
   background: rgb(231,255,231);
   padding: 10px 0px 5px 5px;
-  border:1px solid #333;
+  border-left:1px solid #333;
+}
+
+.advice-source-error {
+  margin: 0px 0px 0px 20px;
+  background: rgb(255,221,221);
+  padding: 10px 0px 5px 5px;
+  border-left:1px solid #333; 
 }
 
 .problems-block ul {

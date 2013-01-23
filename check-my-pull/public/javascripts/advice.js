@@ -53,7 +53,7 @@ function changes(json) {
 
         var analyzer = (function (filename) {
             return function (source) {
-                analyze(filename, source);
+                analyze(filename, source, raw);
             }
         })(filename);
 
@@ -63,7 +63,7 @@ function changes(json) {
     }
 }
 
-function analyze(filename, source) {
+function analyze(filename, source, raw) {
     var options = {
         url: "/analyze",
         type: "POST",
@@ -77,18 +77,19 @@ function analyze(filename, source) {
     $.ajax(options)
         .done(function(fileAdvice) {
             if (typeof fileAdvice == 'string') {
-                renderSimpleAdvice(filename, source, fileAdvice);
+                renderSimpleAdvice(filename, source, fileAdvice, raw);
             } else {
-                renderAdvice(filename, source, fileAdvice);
+                renderAdvice(filename, source, fileAdvice, raw);
             }
         })
         .fail(error);
 }
 
-function renderSimpleAdvice(filename, source, fileAdvice) {
+function renderSimpleAdvice(filename, source, fileAdvice, raw) {
     Templates.get("/assets/templates/advices.tmpl", function(template) {
         var content = template({
             filename: filename,
+            raw: raw,
             source: source.replace(/>/g, "&gt;").replace(/</g, "&lt;").split("\n"),
             fileAdvice: fileAdvice,
             errors: {}
@@ -98,7 +99,7 @@ function renderSimpleAdvice(filename, source, fileAdvice) {
     });
 }
 
-function renderAdvice(filename, source, xml) {
+function renderAdvice(filename, source, xml, raw) {
     var nodes = xml.evaluate(
         "//error", 
         xml.activeElement, 
@@ -123,6 +124,7 @@ function renderAdvice(filename, source, xml) {
     Templates.get("/assets/templates/advices.tmpl", function(template) {
         var content = template({
             filename: filename,
+            raw: raw,
             fileAdvice: 'checked',
             source: source.replace(/>/g, "&gt;").replace(/</g, "&lt;").split("\n"),
             errors: errors

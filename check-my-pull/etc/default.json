@@ -1,5 +1,9 @@
 {
     "java": [
         "checkstyle -f xml -c etc/java.xml $filename"
+    ],
+
+    "js": [
+        "perl etc/jslint.pl $filename"
     ]
 }
