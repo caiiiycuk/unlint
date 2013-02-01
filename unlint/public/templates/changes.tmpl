@@ -1,0 +1,12 @@
+<ul>
+<% for (var index = 0; index < files.length; ++index) {  %>
+    <li>
+        <a href="#<%=files[index]%>">
+            <%=files[index]%>&nbsp;
+            <div style="display: inline-block;">
+                <span style="color: black;">Analyzing, please wait...</span>
+            </div>
+        </a>
+    </li>
+<% } %>
+</ul>

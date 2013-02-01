@@ -1,5 +1,13 @@
 *.class
 *.log
+*.settings
+.classpath
+.history
+.project
+
+# logs
+
+log/
 
 # sbt specific
 dist/*
@@ -8,6 +16,7 @@ lib_managed/
 src_managed/
 project/boot/
 project/plugins/project/
+sbt/
 
 # Scala-IDE specific
 .scala_dependencies
@@ -30,3 +39,7 @@ check-my-pull/.classpath
 check-my-pull/.project
 check-my-pull/RUNNING_PID
 check-my-pull/.settings
+
+# Xitrum
+
+routes.cache
