@@ -5,5 +5,9 @@
 
     "js": [
         "perl etc/jslint.pl $filename"
+    ],
+
+    "scala": [
+        "perl etc/scalastyle.pl etc/scalastyle_config.xml $filename"
     ]
 }
