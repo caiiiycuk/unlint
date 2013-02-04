@@ -12,13 +12,18 @@ function unlint() {
         password:  $('[name="password"]').val(),
     }
 
-    if (transport) {
-        transport.close();
-    }
-
-	transport = new SockTransport(sockUrl, function() {
+    if (!transport) {
+    // if (options.username.length > 0 && options.password > 0) {
+        transport = new SockTransport(sockUrl, function() {
+            inspect(options);
+        });
+    // } else {
+        // transport = new JsonpTransport(sockUrl);
+        // inspect(options);
+    // }
+    } else {
         inspect(options);
-    });
+    }
 }
 
 function inspect(options) {
@@ -40,8 +45,10 @@ function inspect(options) {
     }
 }
 
-function changes(sData, options) {
-	var data = JSON.parse(sData);
+function changes(data, options) {
+    if (typeof data  === 'string') {
+	   data = JSON.parse(data);
+    }
 	
 	var files = [];
 	var rawfiles = [];
@@ -136,11 +143,6 @@ function asObject(array) {
     }
 
     return result;
-}
-
-function error(message) {
-    alert('Error ' + message + ' see console');
-    console.log(message);
 }
 
 function toggleAuthBlock() {

@@ -6,7 +6,9 @@ var SockTransport = function (sockurl, whenReady) {
     this.uuid = 0;
 
     this.socket.onopen = function() {
-        whenReady();
+        if (whenReady) {
+          whenReady();  
+        }
     };
     
     this.socket.onmessage = function (message) {
