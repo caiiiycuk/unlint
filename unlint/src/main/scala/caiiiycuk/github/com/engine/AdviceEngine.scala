@@ -6,7 +6,7 @@ import org.apache.commons.io.FileUtils
 import xitrum.Logger
 import xitrum.util.Loader
 import sys.process._
-import scala.actors.threadpool.AtomicInteger
+import java.util.concurrent.atomic.AtomicInteger
 
 object AdviceEngine extends Logger {
   val checks = Loader.jsonFromFile[Map[String, List[String]]]("etc/default.json")
