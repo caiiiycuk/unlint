@@ -45,6 +45,13 @@ body {
   display: none;
 }
 
+.error {
+  margin: 0px;
+  padding: 5px;
+  background: rgb(233, 200, 200);
+  display: none;
+}
+
 .section {
   margin: 20px;
 }

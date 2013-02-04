@@ -3,6 +3,7 @@ var reChanges = new RegExp("https://github.com/(.*)/(.*)/pull/(.*)/*");
 var transport = undefined;
 
 function unlint() {
+    $('.error').hide();
     $('.advice').show();
     $('.changes-container').html("<img src='/images/ajax-loader.gif' alt='Loading, please wait...'/>");
     
@@ -48,6 +49,12 @@ function inspect(options) {
 function changes(data, options) {
     if (typeof data  === 'string') {
 	   data = JSON.parse(data);
+    }
+
+    if (Object.prototype.toString.call( data ) !== '[object Array]') {
+        $('.error').html("<b>Error:</b> " + JSON.stringify(data));
+        $('.error').show();
+        return;
     }
 	
 	var files = [];
