@@ -100,17 +100,12 @@ function renderSimpleAdvice(filename, source, fileAdvice, raw) {
 }
 
 function renderAdvice(filename, source, xml, raw) {
-    var nodes = xml.evaluate(
-        "//error", 
-        xml.activeElement, 
-        null, 
-        XPathResult.ANY_TYPE, 
-        null);
-
+    var nodes = xml.find("error");
     var errors = {};
 
     var error;
-    while (error = nodes.iterateNext()) {
+    for (var i = 0; i < nodes.length; ++i) {
+        var error = nodes[i];
         var lineError = asObject(error.attributes);
         var lineNumber = parseInt(lineError['line']);
 
@@ -158,6 +153,6 @@ function analyze(filename, source, raw, data) {
         renderSimpleAdvice(filename, source, data, raw);
     } else {
         var xml = $.parseXML(data);
-        renderAdvice(filename, source, xml, raw);
+        renderAdvice(filename, source, $(xml), raw);
     }
 }

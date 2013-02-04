@@ -6,11 +6,18 @@ import org.apache.commons.io.FileUtils
 import xitrum.Logger
 import xitrum.util.Loader
 import sys.process._
+import scala.actors.threadpool.AtomicInteger
 
 object AdviceEngine extends Logger {
   val checks = Loader.jsonFromFile[Map[String, List[String]]]("etc/default.json")
+  val marker = new AtomicInteger(0)
 
   def analyze(filename: String, extenstion: String, source: String) = {
+    while (marker.getAndIncrement() > 0) {
+      marker.decrementAndGet()
+      Thread.sleep(50)
+    }
+    
     val file = File.createTempFile("check-my-pull", "." + extenstion)
 
     try {
@@ -37,6 +44,7 @@ object AdviceEngine extends Logger {
       }
     } finally {
       file.delete()
+      marker.decrementAndGet()
     }
   }
 

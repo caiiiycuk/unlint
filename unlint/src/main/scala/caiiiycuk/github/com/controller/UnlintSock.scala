@@ -27,9 +27,9 @@ object AkkaExecutorService extends AbstractExecutorService {
   override def isShutdown(): Boolean = false
 
   override def shutdownNow(): java.util.List[Runnable] = throw new UnsupportedOperationException("Unable to shutdown AkkaExecutorService")
-  
+
   override def shutdown(): Unit = throw new UnsupportedOperationException("Unable to shutdown AkkaExecutorService")
-  
+
   override def awaitTermination(timeout: Long, unit: TimeUnit): Boolean = throw new UnsupportedOperationException()
 }
 
@@ -59,9 +59,13 @@ class UnlintSock extends SockJsHandler {
 
     request match {
       case UnlintRequest(uuid, "proxy", data) =>
-        proxyRequest(uuid, Json.parse[ProxyRequest](data))
+        future {
+        	proxyRequest(uuid, Json.parse[ProxyRequest](data))
+        }
       case UnlintRequest(uuid, "analyze", data) =>
-        analyzeRequest(uuid, Json.parse[AnalyzeRequest](data))
+        future {
+          analyzeRequest(uuid, Json.parse[AnalyzeRequest](data))
+        }
       case _ =>
         close()
     }
@@ -80,10 +84,8 @@ class UnlintSock extends SockJsHandler {
           .setUsePreemptiveAuth(true).build()))
     }
 
-    future {
-      val data = get.execute().get().getResponseBody();
-      send(Json.generate(Map("uuid" -> uuid, "data" -> data)))
-    }
+    val data = get.execute().get().getResponseBody();
+    send(Json.generate(Map("uuid" -> uuid, "data" -> data)))
   }
 
   def analyzeRequest(uuid: Long, request: AnalyzeRequest) {
