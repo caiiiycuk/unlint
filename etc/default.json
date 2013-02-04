@@ -9,5 +9,9 @@
 
     "scala": [
         "perl etc/scalastyle.pl etc/scalastyle_config.xml $filename"
+    ],
+
+    "coffee": [
+        "perl etc/coffeelint.pl $filename"
     ]
 }
