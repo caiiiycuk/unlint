@@ -1,5 +1,7 @@
 var socket = undefined;
+var socketHandlers = {};
 var reChanges = new RegExp("https://github.com/(.*)/(.*)/pull/(.*)/*");
+var uuid = 0;
 
 function unlint() {
     $('.advice').show();
@@ -15,6 +17,18 @@ function unlint() {
 	
 	socket.onopen = function() {
 		inspect(options);
+	};
+	
+	socket.onmessage = function (message) {
+		var json = JSON.parse(message.data);
+		var handler = socketHandlers[json.uuid];
+		
+		if (!handler) {
+			console.log(message.data);
+			throw "Handler not set for uuid " + json.uuid;
+		}
+		
+		handler(json.data);
 	};
 }
 
@@ -37,7 +51,9 @@ function inspect(options) {
     }
 }
 
-function changes(data, options) {
+function changes(sData, options) {
+	var data = JSON.parse(sData);
+	
 	var files = [];
 	var rawfiles = [];
 	
@@ -54,37 +70,23 @@ function changes(data, options) {
         $('.changes-container').html(content);
     });
 
-    var sources = []
-    
     for (var index = 0; index < files.length; ++index) {
-        var filename = files[index];
-        var raw = rawfiles[index];
-
+    	var filename = files[index];
+    	var raw = rawfiles[index];
+    	
+    	var callback = (function (filename, raw) {
+			return function (source) {
+    			analyze(filename, source, raw);
+    		}
+		})(filename, raw);
+    	
         download({
     		url: raw,
     		username: options.username,
     		password: options.password,
-    		callback: function (source) {
-    			sources.push({
-    				filename: filename,
-    				source: source,
-    				raw: raw
-    			});
-    			
-    			if (sources.length == files.length) {
-    				analyzeSources(sources);
-    			}
-    		}
+    		callback: callback
     	});
     }
-}
-
-function analyzeSources(sources) {
-	for (var index = 0; index < sources.length; ++index) {
-		analyze(sources[index].filename,
-				sources[index].source,
-				sources[index].raw);
-	}
 }
 
 function renderSimpleAdvice(filename, source, fileAdvice, raw) {
@@ -161,7 +163,9 @@ function makeChangesUrl(match) {
 }
 
 function download(options) {
+	var uuid = nextUUID();
 	var request = JSON.stringify({
+			uuid: uuid,
 			action: 'proxy',
 			data: JSON.stringify({
 				url: options.url,
@@ -169,20 +173,25 @@ function download(options) {
 				password: options.password
 			})
 		});
+	
+	socketHandlers[uuid] = options.callback;
 
-	socket.onmessage = function (message) {
-		var data = message.data;
-		if (options.data === "json") {
-			data = JSON.parse(message.data);
-		}
-		options.callback(data);
-	};
+//	socket.onmessage = function (message) {
+//		var data = message.data;
+//		if (options.data === "json") {
+//			data = JSON.parse(message.data);
+//		}
+//		options.callback(data);
+//	};
 	
 	socket.send(request);
 }
 
 function analyze(filename, source, raw) {
+	var uuid = nextUUID();
+	
 	var request = JSON.stringify({
+		uuid: uuid,
 		action: 'analyze',
 		data: JSON.stringify({
 			filename: filename,
@@ -190,9 +199,19 @@ function analyze(filename, source, raw) {
 		})
 	});
 	
-	socket.onmessage = function (message) {
-		console.log(message.data);
+	socketHandlers[uuid] = function (data) {
+		if (data === 'not checked') {
+			renderSimpleAdvice(filename, source, data, raw);
+		} else {
+			var xml = $.parseXML(data);
+			renderAdvice(filename, source, xml, raw);
+		}
 	};
 	
 	socket.send(request);
+}
+
+function nextUUID() {
+	uuid++;
+	return uuid; 
 }
