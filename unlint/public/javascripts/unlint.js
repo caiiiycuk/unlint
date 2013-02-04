@@ -1,35 +1,24 @@
-var socket = undefined;
-var socketHandlers = {};
+var sockUrl = 'http://127.0.0.1:8000/unlint';
 var reChanges = new RegExp("https://github.com/(.*)/(.*)/pull/(.*)/*");
-var uuid = 0;
+var transport = undefined;
 
 function unlint() {
     $('.advice').show();
     $('.changes-container').html("<img src='/images/ajax-loader.gif' alt='Loading, please wait...'/>");
     
-	socket = new SockJS('http://192.168.0.47:8000/unlint');
-	
-	var options = {
-		url: $('[name="url"]').val(),
-		username: $('[name="username"]').val(),
-		password:  $('[name="password"]').val(),
-	}
-	
-	socket.onopen = function() {
-		inspect(options);
-	};
-	
-	socket.onmessage = function (message) {
-		var json = JSON.parse(message.data);
-		var handler = socketHandlers[json.uuid];
-		
-		if (!handler) {
-			console.log(message.data);
-			throw "Handler not set for uuid " + json.uuid;
-		}
-		
-		handler(json.data);
-	};
+    var options = {
+        url: $('[name="url"]').val(),
+        username: $('[name="username"]').val(),
+        password:  $('[name="password"]').val(),
+    }
+
+    if (transport) {
+        transport.close();
+    }
+
+	transport = new SockTransport(sockUrl, function() {
+        inspect(options);
+    });
 }
 
 function inspect(options) {
@@ -37,7 +26,7 @@ function inspect(options) {
     
     if (match) {
     	var changesUrl = makeChangesUrl(match);
-    	download({
+    	transport.download({
     		url: changesUrl,
     		username: options.username,
     		password: options.password,
@@ -76,11 +65,11 @@ function changes(sData, options) {
     	
     	var callback = (function (filename, raw) {
 			return function (source) {
-    			analyze(filename, source, raw);
+    			transport.analyze(filename, source, raw, analyze);
     		}
 		})(filename, raw);
     	
-        download({
+        transport.download({
     		url: raw,
     		username: options.username,
     		password: options.password,
@@ -162,56 +151,11 @@ function makeChangesUrl(match) {
     return "https://api.github.com/repos/" + match[1] + "/" + match[2] + "/pulls/" + match[3] + "/files";
 }
 
-function download(options) {
-	var uuid = nextUUID();
-	var request = JSON.stringify({
-			uuid: uuid,
-			action: 'proxy',
-			data: JSON.stringify({
-				url: options.url,
-				username: options.username,
-				password: options.password
-			})
-		});
-	
-	socketHandlers[uuid] = options.callback;
-
-//	socket.onmessage = function (message) {
-//		var data = message.data;
-//		if (options.data === "json") {
-//			data = JSON.parse(message.data);
-//		}
-//		options.callback(data);
-//	};
-	
-	socket.send(request);
-}
-
-function analyze(filename, source, raw) {
-	var uuid = nextUUID();
-	
-	var request = JSON.stringify({
-		uuid: uuid,
-		action: 'analyze',
-		data: JSON.stringify({
-			filename: filename,
-			source: source
-		})
-	});
-	
-	socketHandlers[uuid] = function (data) {
-		if (data === 'not checked') {
-			renderSimpleAdvice(filename, source, data, raw);
-		} else {
-			var xml = $.parseXML(data);
-			renderAdvice(filename, source, xml, raw);
-		}
-	};
-	
-	socket.send(request);
-}
-
-function nextUUID() {
-	uuid++;
-	return uuid; 
+function analyze(filename, source, raw, data) {
+    if (data === 'not checked') {
+        renderSimpleAdvice(filename, source, data, raw);
+    } else {
+        var xml = $.parseXML(data);
+        renderAdvice(filename, source, xml, raw);
+    }
 }
