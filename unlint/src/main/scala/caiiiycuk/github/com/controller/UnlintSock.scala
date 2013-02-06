@@ -77,11 +77,12 @@ class UnlintSock extends SockJsHandler {
     request match {
       case ProxyRequest(_, "", "") =>
       case ProxyRequest(_, user, password) =>
-        get.setRealm((new RealmBuilder()
-          .setScheme(AuthScheme.BASIC)
+    
+   get.setRealm((new RealmBuilder()
+      .setScheme(AuthScheme.BASIC)
           .setPrincipal(request.username)
           .setPassword(request.password)
-          .setUsePreemptiveAuth(true).build()))
+      .setUsePreemptiveAuth(true).build()))
     }
 
     val data = get.execute().get().getResponseBody();
@@ -95,13 +96,8 @@ class UnlintSock extends SockJsHandler {
     val data = filename match {
       case extensionPattern(extension) =>
         val advices = AdviceEngine.analyze(filename, extension, source)
-
-        if (advices.isEmpty) {
-          "not checked"
-        } else {
-          val xml = <advice>{ advices.map(a => a) }</advice>
-          xml.toString
-        }
+        val xml = <advice>{ advices.map(a => a) }</advice>
+        xml.toString
       case _ =>
         "not checked"
     }

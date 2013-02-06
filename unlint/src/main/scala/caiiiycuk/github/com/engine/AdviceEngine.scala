@@ -7,6 +7,7 @@ import xitrum.Logger
 import xitrum.util.Loader
 import sys.process._
 import java.util.concurrent.atomic.AtomicInteger
+import java.nio.file.Files
 
 object AdviceEngine extends Logger {
   val checks = Loader.jsonFromFile[Map[String, List[String]]]("etc/default.json")
@@ -17,13 +18,24 @@ object AdviceEngine extends Logger {
       marker.decrementAndGet()
       Thread.sleep(50)
     }
-    
-    val file = File.createTempFile("check-my-pull", "." + extenstion)
+
+    val directory = Files.createTempDirectory("unlint").toFile()
+    val file = new File(directory, filename)
 
     try {
       val checkers = checks.getOrElse(extenstion, List())
 
       if (!checkers.isEmpty) {
+        if (!new File(directory, ".git").mkdir()
+          || !new File(directory, ".hg").mkdir()
+          || !new File(directory, ".svn").mkdir()) {
+          throw new IllegalStateException("Unable to create .git|.hg|.svn file")
+        }
+
+        if (!file.getParentFile().mkdirs()) {
+          throw new IllegalStateException("Unable to create source tree")
+        }
+
         FileUtils.write(file, source, "utf8")
       }
 
@@ -32,18 +44,22 @@ object AdviceEngine extends Logger {
         command = checker.toString
       ) yield {
         val executeString = command.replaceAll("\\$filename", file.getAbsoluteFile().toString)
-
         try {
-          XML.loadString(executeString.!!)
+        	XML.loadString(executeString.!!)
         } catch {
           case e: java.lang.Throwable =>
-            val problem = e.getMessage()
-            logger.debug(s"$filename, ($extenstion): Problem when executing '$executeString', cause: $problem")
-            <xml></xml>
+            val message = e.getMessage()
+            val problem = s"$filename, ($extenstion): Problem when executing '$executeString', cause: $message"
+            throw new IllegalStateException(problem)
         }
       }
+    } catch {
+      case e: java.lang.Throwable =>
+        val message = e.getMessage()
+        logger.debug(message)
+        <error line="1" severity="critical" message={ s"$message" }></error>
     } finally {
-      file.delete()
+      FileUtils.deleteQuietly(directory)
       marker.decrementAndGet()
     }
   }

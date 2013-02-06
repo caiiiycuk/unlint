@@ -2,6 +2,10 @@ use strict;
 use warnings;
 use File::Temp qw/tempfile/;
 
+use FindBin;
+use lib "$FindBin::Bin/lib";
+use XMLMessage;
+
 my ($fh, $file) = tempfile('tmpXXXXXX', TMPDIR => 1);
 print $fh "/*jslint browser: true, continue: true, nomen: true, white: false */\n";
 close $fh;
@@ -34,12 +38,7 @@ print "<jslint>\n";
 for my $problem (@problems) {
     if ($problem->{raw} =~ s/Line\s(\d+)/$1 - 1/e) {
         my $line = $1 - 1;
-        my $message = $problem->{raw};
-        
-        $message =~ s/"/&quot;/g;
-        $message =~ s/</&lt;/g;
-        $message =~ s/>/&gt;/g;
-        $message =~ s{/}{|}g;
+        my $message = safe($problem->{raw});
 
         print "<error line=\"$line\" severity=\"warning\" message=\"$message\"></error>\n";
     }
