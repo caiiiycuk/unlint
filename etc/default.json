@@ -13,5 +13,21 @@
 
     "coffee": [
         "perl etc/coffeelint.pl $filename"
+    ],
+
+    "cpp": [
+        "perl etc/cpplint.pl $filename"
+    ],
+
+    "c": [
+        "perl etc/cpplint.pl $filename"
+    ],
+
+    "hpp": [
+        "perl etc/cpplint.pl $filename"
+    ],
+
+    "h": [
+        "perl etc/cpplint.pl $filename"
     ]
 }
