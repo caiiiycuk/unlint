@@ -1,16 +1,19 @@
 package caiiiycuk.github.com.controller
 
 import java.util.concurrent.AbstractExecutorService
+import java.util.concurrent.TimeUnit
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.future
+
 import com.ning.http.client.AsyncHttpClient
 import com.ning.http.client.AsyncHttpClientConfig
 import com.ning.http.client.Realm.AuthScheme
 import com.ning.http.client.Realm.RealmBuilder
+
 import caiiiycuk.github.com.engine.AdviceEngine
 import xitrum.SockJsHandler
 import xitrum.util.Json
-import java.util.concurrent.TimeUnit
 
 case class UnlintRequest(uuid: Long, action: String, data: String)
 case class ProxyRequest(url: String, username: String, password: String)
@@ -55,18 +58,24 @@ class UnlintSock extends SockJsHandler {
   }
 
   def onMessage(message: String) {
-    val request = Json.parse[UnlintRequest](message)
-
-    request match {
-      case UnlintRequest(uuid, "proxy", data) =>
-        future {
-        	proxyRequest(uuid, Json.parse[ProxyRequest](data))
-        }
-      case UnlintRequest(uuid, "analyze", data) =>
-        future {
-          analyzeRequest(uuid, Json.parse[AnalyzeRequest](data))
-        }
-      case _ =>
+    try {
+	    val request = Json.parse[UnlintRequest](message)
+	
+	    request match {
+	      case UnlintRequest(uuid, "proxy", data) =>
+	        future {
+	        	proxyRequest(uuid, Json.parse[ProxyRequest](data))
+	        }
+	      case UnlintRequest(uuid, "analyze", data) =>
+	        future {
+	          analyzeRequest(uuid, Json.parse[AnalyzeRequest](data))
+	        }
+	      case _ =>
+	        close()
+	    }
+    } catch {
+      case e: Throwable =>
+        logger.error(e.getMessage, e)
         close()
     }
   }
