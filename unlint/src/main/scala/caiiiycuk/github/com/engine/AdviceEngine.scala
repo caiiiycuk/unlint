@@ -8,21 +8,62 @@ import xitrum.util.Loader
 import sys.process._
 import java.util.concurrent.atomic.AtomicInteger
 import java.nio.file.Files
+import scala.concurrent.duration._
+import java.util.concurrent.TimeUnit
+import scala.concurrent.ExecutionContext
 
 object AdviceEngine extends Logger {
-  val checks = Loader.jsonFromFile[Map[String, List[String]]]("etc/default.json")
+  implicit val ec: ExecutionContext =
+    xitrum.Config.actorSystem.dispatcher
+
+  val checksFileName = "etc/default.json"
+
+  var checksChangedAt = 0l
+  var checks: Map[String, List[String]] = Map()
+
   val marker = new AtomicInteger(0)
 
-  def analyze(filename: String, extenstion: String, source: String) = {
-    while (marker.getAndIncrement() > 0) {
-      marker.decrementAndGet()
-      Thread.sleep(50)
+  xitrum.Config.actorSystem.scheduler.schedule(
+    Duration.Zero,
+    Duration.create(5000, TimeUnit.MILLISECONDS)) {
+      val file = new File(checksFileName)
+      if (checksChangedAt != file.lastModified()) {
+        checksChangedAt = file.lastModified()
+        checks = Loader.jsonFromFile[Map[String, List[String]]](checksFileName)
+
+        logger.debug(s"Config '$checksFileName' reloaded...")
+      }
     }
 
-    val directory = Files.createTempDirectory("unlint").toFile()
-    val file = new File(directory, filename)
+  def analyze(filename: String, extenstion: String, source: String) = {
+    try {
+      while (marker.getAndIncrement() > 0) {
+        marker.decrementAndGet()
+        Thread.sleep(50)
+      }
+
+      _analyze(filename, extenstion, source)
+    } catch {
+      case e: java.lang.Throwable =>
+        val message = e.getMessage()
+        logger.debug(message)
+        <error line="1" severity="critical" message={ s"$message" }></error>
+    } finally {
+      marker.decrementAndGet()
+    }
+  }
+
+  def _analyze(filename: String, extenstion: String, source: String) = {
+    val temporalDirectory = new File(xitrum.Config.application.getString("xitrum.temporalDirectory"))
+    val directory = new File(temporalDirectory, "unlint-" + System.nanoTime)
+
+    if (!directory.mkdir()) {
+      throw new IllegalStateException("Unable to create temp directory " + directory.getAbsoluteFile())
+    }
 
     try {
+      val file = new File(directory, filename)
+
       val checkers = checks.getOrElse(extenstion, List())
 
       if (!checkers.isEmpty) {
@@ -45,7 +86,7 @@ object AdviceEngine extends Logger {
       ) yield {
         val executeString = command.replaceAll("\\$filename", file.getAbsoluteFile().toString)
         try {
-        	XML.loadString(executeString.!!)
+          XML.loadString(executeString.!!)
         } catch {
           case e: java.lang.Throwable =>
             val message = e.getMessage()
@@ -53,14 +94,8 @@ object AdviceEngine extends Logger {
             throw new IllegalStateException(problem)
         }
       }
-    } catch {
-      case e: java.lang.Throwable =>
-        val message = e.getMessage()
-        logger.debug(message)
-        <error line="1" severity="critical" message={ s"$message" }></error>
     } finally {
       FileUtils.deleteQuietly(directory)
-      marker.decrementAndGet()
     }
   }
 
