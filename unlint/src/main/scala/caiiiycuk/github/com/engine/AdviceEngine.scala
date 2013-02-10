@@ -1,16 +1,18 @@
 package caiiiycuk.github.com.engine
 
 import java.io.File
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
+import scala.sys.process.stringToProcess
 import scala.xml.XML
+
 import org.apache.commons.io.FileUtils
+
 import xitrum.Logger
 import xitrum.util.Loader
-import sys.process._
-import java.util.concurrent.atomic.AtomicInteger
-import java.nio.file.Files
-import scala.concurrent.duration._
-import java.util.concurrent.TimeUnit
-import scala.concurrent.ExecutionContext
 
 object AdviceEngine extends Logger {
   implicit val ec: ExecutionContext =
