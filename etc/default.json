@@ -29,5 +29,13 @@
 
     "h": [
         "perl etc/cpplint.pl $filename"
+    ],
+
+    "pl": [
+        "perl etc/perl-critic.pl $filename"
+    ],
+
+    "pm": [
+        "perl etc/perl-critic.pl $filename"
     ]
 }
