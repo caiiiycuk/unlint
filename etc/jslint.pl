@@ -6,7 +6,7 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 use XMLMessage;
 
-my $file = "_unlint_" . $ARGV[0];
+my $file = $ARGV[0] . "_unlint_.js";
 open F, ">$file";
 print F "/*jslint browser: true, continue: true, nomen: true, white: false */\n";
 close F;
