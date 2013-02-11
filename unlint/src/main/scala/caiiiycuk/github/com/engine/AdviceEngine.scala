@@ -75,7 +75,7 @@ object AdviceEngine extends Logger {
           throw new IllegalStateException("Unable to create .git|.hg|.svn file")
         }
 
-        if (!file.getParentFile().mkdirs()) {
+        if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
           throw new IllegalStateException("Unable to create source tree")
         }
 
