@@ -6,9 +6,10 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 use XMLMessage;
 
-my ($fh, $file) = tempfile('tmpXXXXXX', TMPDIR => 1);
-print $fh "/*jslint browser: true, continue: true, nomen: true, white: false */\n";
-close $fh;
+my $file = "_unlint_" . $ARGV[0];
+open F, ">$file";
+print F "/*jslint browser: true, continue: true, nomen: true, white: false */\n";
+close F;
 
 `cat $ARGV[0] >> $file`;
 
