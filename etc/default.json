@@ -40,6 +40,6 @@
     ],
 
     "css": [
-        "csslint --format=checkstyle-xml $filename"
+        "sh etc/csslint.sh --format=checkstyle-xml $filename"
     ]
 }
