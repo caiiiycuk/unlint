@@ -41,5 +41,9 @@
 
     "css": [
         "sh etc/csslint.sh --format=checkstyle-xml $filename"
+    ],
+
+    "php": [
+        "perl etc/phplint.pl $filename"
     ]
 }
