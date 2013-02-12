@@ -7,7 +7,7 @@ use XMLMessage;
 
 my $file = $ARGV[0];
 
-my @respone = `coffeelint --nocolor $file`;
+my @respone = `coffeelint -f etc/coffeelint.json --nocolor $file`;
 
 print "<coffeelint>\n";
 
