@@ -45,5 +45,9 @@
 
     "php": [
         "perl etc/phplint.pl $filename"
+    ],
+
+    "py": [
+        "perl etc/pep8.pl $filename"
     ]
 }
