@@ -7,7 +7,7 @@ use XMLMessage;
 
 my $file = $ARGV[0];
 
-my @respone = `python etc/cpplint.py --filter=-whitespace/tab,-build/include_order,-legal/copyright,-whitespace/labels,-readability/function,-runtime/rtti $file 2>&1`;
+my @respone = `python etc/cpplint.py --filter=-whitespace/tab,-build/include_order,-legal/copyright,-whitespace/labels,-readability/function $file 2>&1`;
 
 print "<cpplint>\n";
 
