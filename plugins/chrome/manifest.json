@@ -1,13 +1,13 @@
 {
  "name": "unlint.github.com",
- "version": "1.0",
+ "version": "1.1",
  "description": "lint you pull request on github",
  "manifest_version": 2,
  "background": { "scripts": ["main.js"] },
 
  "permissions": [
   "tabs", 
-  "http://unlint.github.com/*"
+  "http://*/*"
  ],
 
  "browser_action": { 
