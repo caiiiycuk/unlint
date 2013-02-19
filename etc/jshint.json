@@ -1,0 +1,17 @@
+{
+    "forin": true, 
+    "noarg": true, 
+    "noempty": true, 
+    "eqeqeq": true, 
+    "bitwise": true, 
+    "strict": true, 
+    "undef": true, 
+    "unused": true, 
+    "curly": true, 
+    "browser": true, 
+    "jquery": true, 
+    "node": true, 
+    "indent": 1, 
+    "maxerr": 100, 
+    "globalstrict": true
+}
