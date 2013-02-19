@@ -4,7 +4,7 @@
     ],
 
     "js": [
-        "jshint --config=etc/jshint.json --checkstyle-reporter $filename"
+        "sh etc/jshint.sh $filename"
     ],
 
     "scala": [
