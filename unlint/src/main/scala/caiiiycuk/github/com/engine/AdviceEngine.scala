@@ -18,28 +18,13 @@ object AdviceEngine extends Logger {
   implicit val ec: ExecutionContext =
     xitrum.Config.actorSystem.dispatcher
 
-  val checksFileName = "etc/default.json"
-
-  var checksChangedAt = 0l
-  var checks: Map[String, List[String]] = Map()
-
-  val marker = new AtomicInteger(0)
-
-  xitrum.Config.actorSystem.scheduler.schedule(
-    Duration.Zero,
-    Duration.create(5000, TimeUnit.MILLISECONDS)) {
-      val file = new File(checksFileName)
-      if (checksChangedAt != file.lastModified()) {
-        checksChangedAt = file.lastModified()
-        checks = Loader.jsonFromFile[Map[String, List[String]]](checksFileName)
-
-        logger.debug(s"Config '$checksFileName' reloaded...")
-      }
-    }
-
+  private val marker = new AtomicInteger(0)
+  
+  private val PARALLEL_TASKS = 3;
+    
   def analyze(filename: String, extenstion: String, source: String) = {
     try {
-      while (marker.getAndIncrement() > 0) {
+      while (marker.getAndIncrement() > (PARALLEL_TASKS - 1)) {
         marker.decrementAndGet()
         Thread.sleep(50)
       }
@@ -66,7 +51,7 @@ object AdviceEngine extends Logger {
     try {
       val file = new File(directory, filename)
 
-      val checkers = checks.getOrElse(extenstion, List())
+      val checkers = AdviceChecks.checks.getOrElse(extenstion, List())
 
       if (!checkers.isEmpty) {
         if (!new File(directory, ".git").mkdir()
