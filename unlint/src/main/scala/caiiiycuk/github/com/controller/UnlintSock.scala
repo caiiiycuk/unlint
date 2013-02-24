@@ -1,53 +1,21 @@
 package caiiiycuk.github.com.controller
 
-import java.util.concurrent.AbstractExecutorService
-import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 import scala.concurrent.future
+
 import com.ning.http.client.AsyncHttpClient
-import com.ning.http.client.AsyncHttpClientConfig
 import com.ning.http.client.Realm.AuthScheme
 import com.ning.http.client.Realm.RealmBuilder
+
+import caiiiycuk.github.com.engine.AdviceChecks
 import caiiiycuk.github.com.engine.AdviceEngine
-import xitrum.Logger
-import xitrum.Logger
+import caiiiycuk.github.com.ws.WS
 import xitrum.SockJsHandler
 import xitrum.util.Json
-import caiiiycuk.github.com.engine.AdviceChecks
-import com.sun.org.apache.xalan.internal.xsltc.compiler.Sort
 
 case class UnlintRequest(uuid: Long, action: String, data: String)
 case class DownloadRequest(url: String, username: String, password: String)
 case class AnalyzeRequest(filename: String, source: String)
-
-object AkkaExecutorService extends AbstractExecutorService {
-  implicit val ec: ExecutionContext =
-    xitrum.Config.actorSystem.dispatcher
-
-  override def execute(r: Runnable) = ec.execute(r);
-
-  override def isTerminated(): Boolean = false
-
-  override def isShutdown(): Boolean = false
-
-  override def shutdownNow(): java.util.List[Runnable] = throw new UnsupportedOperationException("Unable to shutdown AkkaExecutorService")
-
-  override def shutdown(): Unit = throw new UnsupportedOperationException("Unable to shutdown AkkaExecutorService")
-
-  override def awaitTermination(timeout: Long, unit: TimeUnit): Boolean = throw new UnsupportedOperationException()
-}
-
-object UnlintSock {
-  val configBuilder = new AsyncHttpClientConfig.Builder()
-  configBuilder.setAllowPoolingConnection(true)
-  configBuilder.setMaximumConnectionsTotal(100)
-  configBuilder.setConnectionTimeoutInMs(10000)
-  configBuilder.setRequestTimeoutInMs(10000)
-  configBuilder.setFollowRedirects(true)
-  configBuilder.setExecutorService(AkkaExecutorService)
-
-  val ws = new AsyncHttpClient(configBuilder.build())
-}
 
 class UnlintSock extends SockJsHandler {
   implicit val ec: ExecutionContext =
@@ -151,18 +119,7 @@ class UnlintSock extends SockJsHandler {
   }
 
   def prepare(request: DownloadRequest): AsyncHttpClient#BoundRequestBuilder = {
-    val get = UnlintSock.ws.prepareGet(request.url)
-
-    request match {
-      case DownloadRequest(_, "", "") =>
-      case DownloadRequest(_, user, password) =>
-        get.setRealm((new RealmBuilder()
-          .setScheme(AuthScheme.BASIC)
-          .setPrincipal(request.username)
-          .setPassword(request.password)
-          .setUsePreemptiveAuth(true).build()))
-    }
-
-    get
+    val get = WS.prepareGet(request.url)
+    WS.basicAuth(get, request.username, request.password)
   }
 }
