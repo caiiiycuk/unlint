@@ -5,9 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext
-import scala.math.BigInt.int2bigInt
 
-import org.json4s.JInt
 import org.json4s.JsonAST.JArray
 import org.json4s.JsonAST.JString
 import org.json4s.jvalue2monadic
@@ -41,8 +39,6 @@ object AkkaExecutorService extends AbstractExecutorService {
 }
 
 object WS {
-  private val MAX_SIZE = 1024 * 70 /* 70Kb */
-
   private val configBuilder = new AsyncHttpClientConfig.Builder()
 
   configBuilder.setAllowPoolingConnection(true)
@@ -107,22 +103,12 @@ object WS {
       .get().getResponseBody()
 
     val json = parse(data)
-    val size = (json \ "size")
     val content = (json \ "content")
-    
-    size match {
-      case JInt(size) =>
-        if (size > MAX_SIZE) {
-          None
-        } else {
-          content match {
-            case JString(content) =>
-              val decoded = Base64.decode(content)
-              Some(new String(decoded.get))
-            case _ =>
-              None
-          }
-        }
+
+    content match {
+      case JString(content) =>
+        val decoded = Base64.decode(content)
+        Some(new String(decoded.get))
       case _ =>
         None
     }

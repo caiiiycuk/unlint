@@ -23,6 +23,10 @@ class Pull(owner: String, repo: String, pull: Int, sha: String, token: String) {
     applyToken(s"https://api.github.com/repos/$owner/$repo/git/blobs/$sha")
   }
   
+  def advice() = {
+    s"http://tom.w42.ru/advice.html?url=https://github.com/$owner/$repo/pull/$pull"
+  }
+  
   def applyToken(url: String) = {
     token match {
       case "" =>

@@ -26,6 +26,8 @@ class UnlintHook extends Controller {
 
   implicit val _logger: Logger = logger
 
+  private val MAX_SIZE = 1024 * 70 /* 70Kb */
+
   def githubHook = POST("github/hook/:token") {
     hook("", param("token"))
   }
@@ -58,37 +60,53 @@ class UnlintHook extends Controller {
 
   def check(pull: Pull) {
     Statuses.create(pull,
-      Status.pending("http://unlint.github.com", "Checking pull request please wait..."))
+      Status.pending(pull.advice, "Checking pull request with unlint please wait..."))
 
     val changed = WS.downloadChanges(pull)
 
-    val rest = changed.filter(change => {
-      change("status") != "removed" &&
-        !AdviceChecks.checksFor(change("file")).isEmpty
-    })
-    
     val tree = new Tree(pull)
-    
-    for (change <- rest) {
-      val file = change("file")
-      val sha = tree.blob(file)
-      val contents: Option[String] = sha match {
-        case Some(sha) =>
-          WS.downloadBlob(pull, sha)
-        case None =>
-          None
-      }
-      
-      contents match {
-        case Some(source) =>
-          val advices = AdviceEngine.analyze(file, source)
-        case _ =>
-          "not checked"
-      }
-    }
-    
-    Statuses.create(pull,
-      Status.success("http://unlint.github.com", "Good"))
-  }
 
+    var success = true
+
+    for (change <- changed) {
+      val file = change("file")
+      val status = change("status")
+      val advices =
+        if (status == "removed") {
+          List(<skip line="1" severity="info" message={ s"Removed" }></skip>)
+        } else if (AdviceChecks.checksFor(file).isEmpty) {
+          List(<skip line="1" severity="info" message={ s"Skipped (NO CHECKS)" }></skip>)
+        } else {
+          val sha = tree.blob(file)
+          val contents: Option[String] = sha match {
+            case Some(sha) =>
+              WS.downloadBlob(pull, sha)
+            case None =>
+              None
+          }
+
+          contents match {
+            case Some(source) =>
+              if (source.length() > MAX_SIZE) {
+                List(<skip line="1" severity="info" message={ s"File too big" }></skip>)
+              } else {
+                AdviceEngine.analyze(file, source)
+              }
+            case _ =>
+              List(<error line="1" severity="critical" message={ s"File not found" }></error>)
+          }
+        }
+
+      val xml = <advice>{ advices.map(a => a) }</advice>.toString
+      success = success && !xml.contains("<error")
+    }
+
+    if (success) {
+      Statuses.create(pull,
+        Status.success(pull.advice, "No problems found"))
+    } else {
+      Statuses.create(pull,
+        Status.error(pull.advice, "Have some problems"))
+    }
+  }
 }
