@@ -9,17 +9,19 @@ import org.json4s.JString
 import org.json4s.jvalue2monadic
 import org.json4s.native.JsonMethods.parse
 import org.json4s.string2JsonInput
+import org.slf4j.Logger
 import caiiiycuk.github.com.api.Pull
 import caiiiycuk.github.com.api.Status
 import caiiiycuk.github.com.api.Statuses
-import caiiiycuk.github.com.ws.WS
-import xitrum.Controller
-import org.slf4j.Logger
+import caiiiycuk.github.com.api.Tree
 import caiiiycuk.github.com.engine.AdviceChecks
 import caiiiycuk.github.com.engine.AdviceEngine
-import caiiiycuk.github.com.api.Tree
+import caiiiycuk.github.com.ws.WS
+import xitrum.Controller
+import org.jboss.netty.util.CharsetUtil
+import xitrum.SkipCSRFCheck
 
-class UnlintHook extends Controller {
+class UnlintHook extends Controller with SkipCSRFCheck {
 
   implicit val ec: ExecutionContext =
     xitrum.Config.actorSystem.dispatcher
@@ -28,11 +30,15 @@ class UnlintHook extends Controller {
 
   private val MAX_SIZE = 1024 * 70 /* 70Kb */
 
-  def githubHook = POST("github/hook/:token") {
-    hook("", param("token"))
+  def hookWithoutToken = POST("github/hook") {
+    hook(param("payload"))
+  }
+  
+  def hookWithToken = POST("github/hook/:token") {
+    hook(param("payload"), param("token"))
   }
 
-  def hook(payload: String, token: String) {
+  def hook(payload: String, token: String = "") {
     val json = parse(payload)
 
     val action = (json \ "action").toString()

@@ -44,7 +44,8 @@ class Tree(pull: Pull)(implicit logger: Logger) {
   }
 
   private def loadTree(flat: Map[String, Entry], treeSha: String, parent: String) = {
-    val data = WS.prepareGet(pull.tree(treeSha)).execute().get().getResponseBody()
+    val request = pull.tree(treeSha)
+    val data = WS.prepareGet(request).execute().get().getResponseBody()
     val json = parse(data)
     val paths = (json \ "tree" \ "path")
     val sha = (json \ "tree" \ "sha")
@@ -57,7 +58,7 @@ class Tree(pull: Pull)(implicit logger: Logger) {
       case (JString(path), JString(sha)) =>
         flat.put(parent + path, new Entry(sha, false))
       case _ =>
-        logger.debug(s"Unmatched json '$data'")
+        logger.debug(s"Tree miss json='$data', request='$request', parent='$parent', sha='$sha'")
     }
 
   }
