@@ -8,12 +8,12 @@ import org.slf4j.Logger
 
 import caiiiycuk.github.com.ws.WS
 
-class Entry(val sha: String, var resolved: Boolean)
+class BlobEntry(val sha: String, val size: Option[Long], var resolved: Boolean)
 
 class Tree(pull: Pull)(implicit logger: Logger) {
 
   val parent = """^(.*)/.+$""".r
-  val flatTree = Map[String, Entry]()
+  val flatTree = Map[String, BlobEntry]()
 
   loadTree(flatTree, pull.root(), "")
 
@@ -21,46 +21,55 @@ class Tree(pull: Pull)(implicit logger: Logger) {
     path match {
       case parent(parentPath) =>
         resolve(parentPath)
-        val entry = flatTree.get(parentPath)
-        entry match {
-          case Some(entry) if !entry.resolved =>
-            loadTree(flatTree, entry.sha, parentPath + "/")
-            entry.resolved = true
+        val blobEntry = flatTree.get(parentPath)
+        blobEntry match {
+          case Some(blobEntry) if !blobEntry.resolved =>
+            loadTree(flatTree, blobEntry.sha, parentPath + "/")
+            blobEntry.resolved = true
           case _ =>
         }
       case _ =>
     }
   }
-  
-  def blob(path: String): Option[String] = {
+
+  def blob(path: String): Option[BlobEntry] = {
     resolve(path)
-    
+
     flatTree.get(path) match {
       case Some(entity) =>
-        Some(entity.sha)
+        Some(entity)
       case None =>
         None
     }
   }
 
-  private def loadTree(flat: Map[String, Entry], treeSha: String, parent: String) = {
+  private def loadTree(flat: Map[String, BlobEntry], treeSha: String, parent: String) = {
     val request = pull.tree(treeSha)
     val data = WS.prepareGet(request).execute().get().getResponseBody()
     val json = parse(data)
-    val paths = (json \ "tree" \ "path")
-    val sha = (json \ "tree" \ "sha")
 
-    (paths, sha) match {
-      case (JArray(paths), JArray(sha)) =>
-        for ((JString(path), JString(sha)) <- paths.zip(sha)) {
-          flat.put(parent + path, new Entry(sha, false))
-        }
-      case (JString(path), JString(sha)) =>
-        flat.put(parent + path, new Entry(sha, false))
-      case _ =>
-        logger.debug(s"Tree miss json='$data', request='$request', parent='$parent', sha='$sha'")
+    val trees =
+      (json \ "tree") match {
+        case JArray(trees) =>
+          trees
+        case tree =>
+          List(tree)
+      }
+
+    for (tree <- trees) {
+      val path = (tree \ "path")
+      val sha = (tree \ "sha")
+      val size = (tree \ "size")
+
+      (path, sha, size) match {
+        case (JString(path), JString(sha), JInt(size)) =>
+          flat.put(parent + path, new BlobEntry(sha, Some(size.longValue), false))
+        case (JString(path), JString(sha), JNothing) =>
+          flat.put(parent + path, new BlobEntry(sha, None, false))
+        case _ =>
+          logger.error(s"Unknown blob type '$data'")
+      }
     }
-
   }
 
 }

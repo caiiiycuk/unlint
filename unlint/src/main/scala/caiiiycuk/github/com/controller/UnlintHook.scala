@@ -3,13 +3,14 @@ package caiiiycuk.github.com.controller
 import scala.concurrent.ExecutionContext
 import scala.concurrent.future
 import scala.reflect.runtime.universe
-import org.json4s.JArray
+
 import org.json4s.JInt
 import org.json4s.JString
 import org.json4s.jvalue2monadic
 import org.json4s.native.JsonMethods.parse
 import org.json4s.string2JsonInput
 import org.slf4j.Logger
+
 import caiiiycuk.github.com.api.Pull
 import caiiiycuk.github.com.api.Status
 import caiiiycuk.github.com.api.Statuses
@@ -18,7 +19,6 @@ import caiiiycuk.github.com.engine.AdviceChecks
 import caiiiycuk.github.com.engine.AdviceEngine
 import caiiiycuk.github.com.ws.WS
 import xitrum.Controller
-import org.jboss.netty.util.CharsetUtil
 import xitrum.SkipCSRFCheck
 
 class UnlintHook extends Controller with SkipCSRFCheck {
@@ -33,7 +33,7 @@ class UnlintHook extends Controller with SkipCSRFCheck {
   def hookWithoutToken = POST("github/hook") {
     hook(param("payload"))
   }
-  
+
   def hookWithToken = POST("github/hook/:token") {
     hook(param("payload"), param("token"))
   }
@@ -57,7 +57,14 @@ class UnlintHook extends Controller with SkipCSRFCheck {
       case (JString(owner), JString(repo), JInt(num), JString(sha)) =>
         val pull = new Pull(owner, repo, num.toInt, sha, token)
         future {
-          check(pull)
+          try {
+            check(pull)
+          } catch {
+            case e: Throwable =>
+              logger.error(e.getMessage(), e)
+              Statuses.create(pull,
+                Status.failure(pull.advice, "Exception occured: " + e.getMessage()))
+          }
         }
       case _ =>
       // nothing to do
@@ -77,28 +84,29 @@ class UnlintHook extends Controller with SkipCSRFCheck {
     for (change <- changed) {
       val file = change("file")
       val status = change("status")
+
       val advices =
         if (status == "removed") {
           List(<skip line="1" severity="info" message={ s"Removed" }></skip>)
         } else if (AdviceChecks.checksFor(file).isEmpty) {
           List(<skip line="1" severity="info" message={ s"Skipped (NO CHECKS)" }></skip>)
         } else {
-          val sha = tree.blob(file)
-          val contents: Option[String] = sha match {
-            case Some(sha) =>
-              WS.downloadBlob(pull, sha)
-            case None =>
-              None
-          }
-
-          contents match {
-            case Some(source) =>
-              if (source.length() > MAX_SIZE) {
+          tree.blob(file) match {
+            case Some(blob) =>
+              val size = blob.size.getOrElse(0l)
+              val sha = blob.sha
+        
+              if (size > MAX_SIZE) {
                 List(<skip line="1" severity="info" message={ s"File too big" }></skip>)
               } else {
-                AdviceEngine.analyze(file, source)
+            	WS.downloadBlob(pull, sha) match {
+            	  case Some(source) =>
+            	    AdviceEngine.analyze(file, source)
+            	  case None =>
+            	    List(<error line="1" severity="critical" message={ s"File not found, sha '$sha'" }></error>)
+            	}
               }
-            case _ =>
+            case None =>
               List(<error line="1" severity="critical" message={ s"File not found" }></error>)
           }
         }

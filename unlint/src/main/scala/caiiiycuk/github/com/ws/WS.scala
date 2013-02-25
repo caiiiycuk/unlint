@@ -2,24 +2,20 @@ package caiiiycuk.github.com.ws
 
 import java.util.concurrent.AbstractExecutorService
 import java.util.concurrent.TimeUnit
-
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext
-
 import org.json4s.JsonAST.JArray
 import org.json4s.JsonAST.JString
 import org.json4s.jvalue2monadic
 import org.json4s.native.JsonMethods.parse
 import org.json4s.string2JsonInput
 import org.slf4j.Logger
-
 import com.ning.http.client.AsyncHttpClient
 import com.ning.http.client.AsyncHttpClientConfig
 import com.ning.http.client.Realm.AuthScheme
 import com.ning.http.client.Realm.RealmBuilder
-
 import caiiiycuk.github.com.api.Pull
-import xitrum.util.Base64
+import javax.xml.bind.DatatypeConverter
 
 object AkkaExecutorService extends AbstractExecutorService {
   implicit val ec: ExecutionContext =
@@ -43,8 +39,8 @@ object WS {
 
   configBuilder.setAllowPoolingConnection(true)
   configBuilder.setMaximumConnectionsTotal(100)
-  configBuilder.setConnectionTimeoutInMs(10000)
-  configBuilder.setRequestTimeoutInMs(10000)
+  configBuilder.setConnectionTimeoutInMs(15000)
+  configBuilder.setRequestTimeoutInMs(15000)
   configBuilder.setFollowRedirects(true)
   configBuilder.setExecutorService(AkkaExecutorService)
 
@@ -104,11 +100,21 @@ object WS {
 
     val json = parse(data)
     val content = (json \ "content")
+    val encoding = (json \ "encoding")
 
     content match {
       case JString(content) =>
-        val decoded = Base64.decode(content)
-        Some(new String(decoded.get))
+        if (encoding.toString == "JString(base64)") {
+          try {
+            val decoded = DatatypeConverter.parseBase64Binary(content)
+            Some(new String(decoded))
+          } catch {
+            case e: Throwable =>
+              Some("Exception: " + e.getMessage())
+          }
+        } else {
+          Some(content)
+        }
       case _ =>
         None
     }
