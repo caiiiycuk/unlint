@@ -29,14 +29,10 @@ object Statuses {
   implicit val ec: ExecutionContext =
     xitrum.Config.actorSystem.dispatcher
 
-  def create(commit: Commit, username: String, password: String, status: Status) = {
-    val owner = commit.owner
-    val repo = commit.repo
-    val sha = commit.sha
-    val post = WS.preparePost(s"https://api.github.com/repos/$owner/$repo/statuses/$sha")
-    WS.basicAuth(post, username, password)
-
+  def create(pull: Pull, status: Status) = {
+    val post = WS.preparePost(pull.statuses())
     val data = Json.generate(status)
+    
     post.setBody(data)
     post.execute()
   }

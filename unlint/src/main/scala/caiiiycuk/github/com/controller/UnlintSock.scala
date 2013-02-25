@@ -25,8 +25,6 @@ class UnlintSock extends SockJsHandler {
   val BIG_FILE = "/*BIG FILE*/"
   val MAX_SIZE = 1024 * 70 /* 70Kb */
 
-  val extensionPattern = """^.+\.([^.]*)$""".r
-
   def onOpen(session: Map[String, Any]) {
   }
 
@@ -64,16 +62,7 @@ class UnlintSock extends SockJsHandler {
   }
 
   def rawRequest(uuid: Long, request: DownloadRequest) {
-    val extension = request.url match {
-      case url if url.endsWith(".min.js") || url.endsWith(".min.css") =>
-        ""
-      case extensionPattern(extension) =>
-        extension
-      case _ =>
-        ""
-    }
-
-    val checks = AdviceChecks.checks.getOrElse(extension, List())
+    val checks = AdviceChecks.checksFor(request.url)
 
     if (checks.isEmpty) {
       send(Json.generate(Map("uuid" -> uuid, "data" -> SKIPPED)))
@@ -102,17 +91,15 @@ class UnlintSock extends SockJsHandler {
       return ;
     }
 
-    val data =
-      filename match {
-        case extensionPattern(extension) =>
-          val advices = AdviceEngine.analyze(filename, extension, source)
-          val xml = <advice>{ advices.map(a => a) }</advice>
-          xml.toString
-        case _ =>
-          "not checked"
-      }
-
-    send(Json.generate(Map("uuid" -> uuid, "data" -> data)))
+    if (AdviceChecks.checksFor(filename).isEmpty) {
+      send(Json.generate(Map("uuid" -> uuid, "data" -> "not checked")))
+    } else {
+      val advices = AdviceEngine.analyze(filename, source)
+      val xml = <advice>{ advices.map(a => a) }</advice>
+      val data = xml.toString
+      
+      send(Json.generate(Map("uuid" -> uuid, "data" -> data)))
+    }
   }
 
   def onClose() {

@@ -12,19 +12,39 @@ object AdviceChecks {
   implicit val ec: ExecutionContext =
     xitrum.Config.actorSystem.dispatcher
 
-  var checks: Map[String, List[String]] = Map()
-    
+  private val extensionPattern = """^.+\.([^.]*)$""".r
+
   private val checksFileName = "etc/default.json"
 
   private var checksChangedAt = 0l
 
+  private var checks: Map[String, List[String]] = Map()
+
+  def checksFor(filename: String) = {
+    val extension = filename match {
+      case url if url.endsWith(".min.js") || url.endsWith(".min.css") =>
+        ""
+      case extensionPattern(extension) =>
+        extension
+      case _ =>
+        ""
+    }
+
+    AdviceChecks.checks.getOrElse(extension, List())
+  }
+
+  def update() = {
+    val file = new File(checksFileName)
+    if (checksChangedAt != file.lastModified()) {
+      checksChangedAt = file.lastModified()
+      checks = Loader.jsonFromFile[Map[String, List[String]]](checksFileName)
+    }
+  }
+
   xitrum.Config.actorSystem.scheduler.schedule(
     Duration.Zero,
     Duration.create(5000, TimeUnit.MILLISECONDS)) {
-      val file = new File(checksFileName)
-      if (checksChangedAt != file.lastModified()) {
-        checksChangedAt = file.lastModified()
-        checks = Loader.jsonFromFile[Map[String, List[String]]](checksFileName)
-      }
+      update()
     }
+
 }

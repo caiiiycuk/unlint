@@ -22,14 +22,14 @@ object AdviceEngine extends Logger {
   
   private val PARALLEL_TASKS = 3;
     
-  def analyze(filename: String, extenstion: String, source: String) = {
+  def analyze(filename: String, source: String) = {
     try {
       while (marker.getAndIncrement() > (PARALLEL_TASKS - 1)) {
         marker.decrementAndGet()
         Thread.sleep(50)
       }
 
-      _analyze(filename, extenstion, source)
+      _analyze(filename, source)
     } catch {
       case e: java.lang.Throwable =>
         val message = e.getMessage()
@@ -40,7 +40,7 @@ object AdviceEngine extends Logger {
     }
   }
 
-  def _analyze(filename: String, extenstion: String, source: String) = {
+  def _analyze(filename: String, source: String) = {
     val temporalDirectory = new File(xitrum.Config.application.getString("xitrum.temporalDirectory"))
     val directory = new File(temporalDirectory, "unlint-" + System.nanoTime)
 
@@ -51,7 +51,7 @@ object AdviceEngine extends Logger {
     try {
       val file = new File(directory, filename)
 
-      val checkers = AdviceChecks.checks.getOrElse(extenstion, List())
+      val checkers = AdviceChecks.checksFor(filename)
 
       if (!checkers.isEmpty) {
         if (!new File(directory, ".git").mkdir()
@@ -77,7 +77,7 @@ object AdviceEngine extends Logger {
         } catch {
           case e: java.lang.Throwable =>
             val message = e.getMessage()
-            val problem = s"$filename, ($extenstion): Problem when executing '$executeString', cause: $message"
+            val problem = s"$filename, Problem when executing '$executeString', cause: $message"
             throw new IllegalStateException(problem)
         }
       }
