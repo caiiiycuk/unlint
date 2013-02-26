@@ -44,7 +44,8 @@ class UnlintHook extends Controller with SkipCSRFCheck {
     val action = (json \ "action").toString()
 
     if (action != "JString(opened)" &&
-      action != "JString(synchronize)") {
+      action != "JString(synchronize)" &&
+      action != "JString(reopened)") {
       return
     }
 
@@ -75,6 +76,8 @@ class UnlintHook extends Controller with SkipCSRFCheck {
     Statuses.create(pull,
       Status.pending(pull.advice, "Checking pull request with unlint please wait..."))
 
+    Thread.sleep(2000) // Wait while pending status applied
+
     val changed = WS.downloadChanges(pull)
 
     val tree = new Tree(pull)
@@ -95,16 +98,16 @@ class UnlintHook extends Controller with SkipCSRFCheck {
             case Some(blob) =>
               val size = blob.size.getOrElse(0l)
               val sha = blob.sha
-        
+
               if (size > MAX_SIZE) {
                 List(<skip line="1" severity="info" message={ s"File too big" }></skip>)
               } else {
-            	WS.downloadBlob(pull, sha) match {
-            	  case Some(source) =>
-            	    AdviceEngine.analyze(file, source)
-            	  case None =>
-            	    List(<error line="1" severity="critical" message={ s"File not found, sha '$sha'" }></error>)
-            	}
+                WS.downloadBlob(pull, sha) match {
+                  case Some(source) =>
+                    AdviceEngine.analyze(file, source)
+                  case None =>
+                    List(<error line="1" severity="critical" message={ s"File not found, sha '$sha'" }></error>)
+                }
               }
             case None =>
               List(<error line="1" severity="critical" message={ s"File not found" }></error>)

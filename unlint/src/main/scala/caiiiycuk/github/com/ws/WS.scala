@@ -86,8 +86,7 @@ object WS {
           }
           buffer.toList
         case _ =>
-          logger.error(s"Unable to parse changes json '$json'")
-          List()
+          throw new IllegalArgumentException(s"Unable to parse changes json '$json'")
       }
 
     changed

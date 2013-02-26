@@ -34,7 +34,7 @@ object Statuses {
     val data = Json.generate(status)
     
     post.setBody(data)
-    post.execute()
+	post.execute().get()
   }
 
 }
