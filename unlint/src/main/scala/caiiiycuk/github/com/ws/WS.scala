@@ -106,7 +106,7 @@ object WS {
         if (encoding.toString == "JString(base64)") {
           try {
             val decoded = DatatypeConverter.parseBase64Binary(content)
-            Some(new String(decoded))
+            Some(new String(decoded, "UTF-8"))
           } catch {
             case e: Throwable =>
               Some("Exception: " + e.getMessage())
