@@ -22,7 +22,11 @@ object Status {
   }
 }
 
-class Status(val state: String, val target_url: String, val description: String)
+class Status(val state: String, val target_url: String, var description: String) {
+  if (description.length() >= 140) {
+    description = description.substring(0, 136) + "..."
+  }
+}
 
 object Statuses {
 

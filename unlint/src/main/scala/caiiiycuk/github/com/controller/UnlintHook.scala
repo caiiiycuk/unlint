@@ -76,17 +76,22 @@ class UnlintHook extends Controller with SkipCSRFCheck {
     Statuses.create(pull,
       Status.pending(pull.advice, "Checking pull request with unlint please wait..."))
 
-    Thread.sleep(2000) // Wait while pending status applied
+    Thread.sleep(1000) // Wait while pending status applied
 
     val changed = WS.downloadChanges(pull)
 
     val tree = new Tree(pull)
 
     var success = true
+    var problemFile = ""
 
-    for (change <- changed) {
+    for (change <- changed; if success) {
       val file = change("file")
       val status = change("status")
+
+      Statuses.create(pull,
+        Status.pending(pull.advice, s"Checking file '$file'..."))
+      Thread.sleep(1000) // Wait while pending status applied
 
       val advices =
         if (status == "removed") {
@@ -115,15 +120,22 @@ class UnlintHook extends Controller with SkipCSRFCheck {
         }
 
       val xml = <advice>{ advices.map(a => a) }</advice>.toString
-      success = success && !xml.contains("<error")
+      success = !xml.contains("<error")
+
+      if (!success) {
+        problemFile = file
+        logger.debug(s"Problem in '$file', problem: $xml")
+      }
     }
+
+    Thread.sleep(1000) // Wait while pending status applied
 
     if (success) {
       Statuses.create(pull,
         Status.success(pull.advice, "No problems found"))
     } else {
       Statuses.create(pull,
-        Status.error(pull.advice, "Have some problems"))
+        Status.error(pull.advice, s"Problems in file '$problemFile'"))
     }
   }
 }
