@@ -12,7 +12,15 @@ class UnlintReport extends Controller with SkipCSRFCheck {
     respondView()
   }
 
-  def push = POST("report/byurl") {
+  def getPush = GET("byurl") {
+    push()
+  }
+
+  def postPush = POST("report/byurl") {
+    push()
+  }
+
+  def push() = {
     try {
       val url = param("url")
       val token = param("token")
