@@ -1,0 +1,38 @@
+!!! 5
+html(lang="en")
+	head
+		meta(charset='utf-8')
+		meta(http-equiv="X-UA-Compatible" content="chrome=1")
+		link(href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css')
+		link(rel="stylesheet" type="text/css" href="/stylesheets/advice.css" media="screen")
+		link(rel="stylesheet" type="text/css" href="/stylesheets/pygment_trac.css" media="screen")
+		link(rel="stylesheet" type="text/css" href="/stylesheets/style.css" media="screen")
+		link(rel="stylesheet" type="text/css" href="/stylesheets/print.css" media="print")
+		/[if lt IE 9]
+			script(src="//html5shiv.googlecode.com/svn/trunk/html5.js")
+		link(rel="shortcut icon" href="/favicon.ico")
+		title Advice report
+	body
+		#container
+			.inner-long
+				header
+					h1 unlint.github.com
+					h2 report
+
+				section(id="main_content")
+					p.error
+					h3 Changes in pull request
+					p.changes-container Loading, please wait...
+					h3 Collected advice
+					p.advice-container
+					p
+						a(href="index.html")
+							span Go back
+
+		script(src="/javascripts/jquery-1.7.1.min.js")
+		script(src="/javascripts/underscore-min.js")
+		script(src="/javascripts/templates.js")
+		script(src="/javascripts/unlint.js")
+		script(src="/javascripts/sockjs-0.3.4.js")
+
+		script= "unlint('" + at("secret") +"');"

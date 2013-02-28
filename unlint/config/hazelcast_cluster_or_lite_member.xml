@@ -3,8 +3,8 @@
            xmlns="http://www.hazelcast.com/schema/config"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <group>
-    <name>xitrum-new</name>
-    <password>dev-pass</password>
+    <name>unlint</name>
+    <password>unlint-dev</password>
   </group>
 
   <network>
@@ -20,6 +20,13 @@
     </join>
   </network>
 
+  <map name="unlint/secrets">
+    <backup-count>0</backup-count>
+    <eviction-policy>LRU</eviction-policy>
+    <max-size>1000000</max-size>
+    <eviction-percentage>25</eviction-percentage>
+  </map>
+  
   <map name="xitrum/cache">
     <backup-count>0</backup-count>
     <eviction-policy>LRU</eviction-policy>

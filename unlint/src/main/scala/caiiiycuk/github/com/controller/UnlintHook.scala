@@ -2,15 +2,12 @@ package caiiiycuk.github.com.controller
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.future
-import scala.reflect.runtime.universe
-
 import org.json4s.JInt
 import org.json4s.JString
 import org.json4s.jvalue2monadic
 import org.json4s.native.JsonMethods.parse
 import org.json4s.string2JsonInput
 import org.slf4j.Logger
-
 import caiiiycuk.github.com.api.Pull
 import caiiiycuk.github.com.api.Status
 import caiiiycuk.github.com.api.Statuses
@@ -20,6 +17,8 @@ import caiiiycuk.github.com.engine.AdviceEngine
 import caiiiycuk.github.com.ws.WS
 import xitrum.Controller
 import xitrum.SkipCSRFCheck
+import caiiiycuk.github.com.engine.AdviceEngine
+import caiiiycuk.github.com.secret.Secrets
 
 class UnlintHook extends Controller with SkipCSRFCheck {
 
@@ -49,22 +48,22 @@ class UnlintHook extends Controller with SkipCSRFCheck {
       return
     }
 
-    val pull = (json \ "number")
-    val owner = (json \ "repository" \ "owner" \ "login")
-    val repo = (json \ "repository" \ "name")
-    val sha = (json \ "pull_request" \ "head" \ "sha")
+    val pull = Pull(json, token)
 
-    (owner, repo, pull, sha) match {
-      case (JString(owner), JString(repo), JInt(num), JString(sha)) =>
-        val pull = new Pull(owner, repo, num.toInt, sha, token)
+    pull match {
+      case Some(pull) =>
         future {
+          val secret = Secrets.secretOfPull(pull)
+          val host = request.getHeader("Host")
+          val url = s"http://$host/report/$secret"
+          
           try {
-            check(pull)
+            check(pull, url)
           } catch {
             case e: Throwable =>
               logger.error(e.getMessage(), e)
               Statuses.create(pull,
-                Status.failure(pull.advice, "Exception occured: " + e.getMessage()))
+                Status.failure(url, "Exception occured: " + e.getMessage()))
           }
         }
       case _ =>
@@ -72,56 +71,27 @@ class UnlintHook extends Controller with SkipCSRFCheck {
     }
   }
 
-  def check(pull: Pull) {
+  def check(pull: Pull, url: String) {
     Statuses.create(pull,
-      Status.pending(pull.advice, "Checking pull request with unlint please wait..."))
+      Status.pending(url, "Checking pull request with unlint please wait..."))
 
     Thread.sleep(1000) // Wait while pending status applied
 
-    val changed = WS.downloadChanges(pull)
-
-    val tree = new Tree(pull)
+    val engine = new AdviceEngine(pull)
 
     var success = true
     var problemFile = ""
 
-    for (change <- changed; if success) {
-      val file = change("file")
-      val status = change("status")
+    for (change <- engine.changes; if success) {
+      val file = change.file
 
       Statuses.create(pull,
-        Status.pending(pull.advice, s"Checking file '$file'..."))
+        Status.pending(url, s"Checking file '$file'..."))
       Thread.sleep(1000) // Wait while pending status applied
 
-      val advices =
-        if (status == "removed") {
-          List(<skip line="1" severity="info" message={ s"Removed" }></skip>)
-        } else if (AdviceChecks.checksFor(file).isEmpty) {
-          List(<skip line="1" severity="info" message={ s"Skipped (NO CHECKS)" }></skip>)
-        } else {
-          tree.blob(file) match {
-            case Some(blob) =>
-              val size = blob.size.getOrElse(0l)
-              val sha = blob.sha
+      val xml = engine.analyze(change).advice
 
-              if (size > MAX_SIZE) {
-                List(<skip line="1" severity="info" message={ s"File too big" }></skip>)
-              } else {
-                WS.downloadBlob(pull, sha) match {
-                  case Some(source) =>
-                    AdviceEngine.analyze(file, source)
-                  case None =>
-                    List(<error line="1" severity="critical" message={ s"File not found, sha '$sha'" }></error>)
-                }
-              }
-            case None =>
-              List(<error line="1" severity="critical" message={ s"File not found" }></error>)
-          }
-        }
-
-      val xml = <advice>{ advices.map(a => a) }</advice>.toString
       success = !xml.contains("<error")
-
       if (!success) {
         problemFile = file
         logger.debug(s"Problem in '$file', problem: $xml")
@@ -132,10 +102,10 @@ class UnlintHook extends Controller with SkipCSRFCheck {
 
     if (success) {
       Statuses.create(pull,
-        Status.success(pull.advice, "No problems found"))
+        Status.success(url, "No problems found"))
     } else {
       Statuses.create(pull,
-        Status.error(pull.advice, s"Problems in file '$problemFile'"))
+        Status.error(url, s"Problems in file '$problemFile'"))
     }
   }
 }

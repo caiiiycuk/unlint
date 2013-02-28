@@ -16,6 +16,7 @@ import com.ning.http.client.Realm.AuthScheme
 import com.ning.http.client.Realm.RealmBuilder
 import caiiiycuk.github.com.api.Pull
 import javax.xml.bind.DatatypeConverter
+import caiiiycuk.github.com.api.Change
 
 object AkkaExecutorService extends AbstractExecutorService {
   implicit val ec: ExecutionContext =
@@ -75,14 +76,14 @@ object WS {
     val changed =
       (files, rawFiles, statuses) match {
         case (JString(file), JString(raw), JString(status)) =>
-          List(Map("file" -> file, "raw" -> raw, "status" -> status))
+          List(new Change(file, raw, status))
 
         case (JArray(files), JArray(rawFiles), JArray(statuses)) =>
-          val buffer = new ArrayBuffer[Map[String, String]]
+          val buffer = new ArrayBuffer[Change]
           for (
             ((JString(file), JString(raw)), JString(status)) <- files.zip(rawFiles).zip(statuses)
           ) {
-            buffer += Map("file" -> file, "raw" -> raw, "status" -> status)
+            buffer += new Change(file, raw, status)
           }
           buffer.toList
         case _ =>

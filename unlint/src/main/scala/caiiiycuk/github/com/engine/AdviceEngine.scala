@@ -1,89 +1,63 @@
 package caiiiycuk.github.com.engine
 
-import java.io.File
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
+import org.slf4j.Logger
+import caiiiycuk.github.com.api.Pull
+import caiiiycuk.github.com.api.Tree
+import caiiiycuk.github.com.ws.WS
+import caiiiycuk.github.com.api.Change
+import scala.xml.Node
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Duration
-import scala.sys.process.stringToProcess
-import scala.xml.XML
+trait AnalyzeProgress {
+  def notifyDownload(): Unit
+  def notifyAnalyze(): Unit
+}
 
-import org.apache.commons.io.FileUtils
+object NOOPAnalyzeProgress extends AnalyzeProgress {
+  def notifyDownload(): Unit = {}
+  def notifyAnalyze(): Unit = {}
+}
 
-import xitrum.Logger
-import xitrum.util.Loader
+class SourceWithAdvice(val advice: String, val source: String)
 
-object AdviceEngine extends Logger {
-  implicit val ec: ExecutionContext =
-    xitrum.Config.actorSystem.dispatcher
+class AdviceEngine(pull: Pull)(implicit logger: Logger) {
+  private val MAX_SIZE = 1024 * 70 /* 70Kb */
 
-  private val marker = new AtomicInteger(0)
-  
-  private val PARALLEL_TASKS = 3;
-    
-  def analyze(filename: String, source: String) = {
-    try {
-      while (marker.getAndIncrement() > (PARALLEL_TASKS - 1)) {
-        marker.decrementAndGet()
-        Thread.sleep(50)
+  val changes = WS.downloadChanges(pull)
+
+  private val tree = new Tree(pull)
+
+  def analyze(change: Change, progress: AnalyzeProgress = NOOPAnalyzeProgress): SourceWithAdvice = {
+    val file = change.file
+    val status = change.status
+
+    val advices =
+      if (status == "removed") {
+        (List(<skip line="1" severity="info" message={ s"Sikpped: (Removed)" }></skip>), "")
+      } else if (AdviceChecks.checksFor(file).isEmpty) {
+        (List(<skip line="1" severity="info" message={ s"Skipped: (No checks)" }></skip>), "")
+      } else {
+        tree.blob(file) match {
+          case Some(blob) =>
+            val size = blob.size.getOrElse(0l)
+            val sha = blob.sha
+
+            if (size > MAX_SIZE) {
+              (List(<skip line="1" severity="info" message={ s"Skipped: (File too big)" }></skip>), "")
+            } else {
+              progress.notifyDownload()
+              WS.downloadBlob(pull, sha) match {
+                case Some(source) =>
+                  progress.notifyAnalyze
+                  (AdviceProcess.analyze(file, source), source)
+                case None =>
+                  (List(<error line="1" severity="critical" message={ s"File not found, sha '$sha'" }></error>), "")
+              }
+            }
+          case None =>
+            (List(<error line="1" severity="critical" message={ s"File not found" }></error>), "")
+        }
       }
 
-      _analyze(filename, source)
-    } catch {
-      case e: java.lang.Throwable =>
-        val message = e.getMessage()
-        logger.debug(message)
-        <error line="1" severity="critical" message={ s"$message" }></error>
-    } finally {
-      marker.decrementAndGet()
-    }
+    new SourceWithAdvice(<advice>{ advices._1.map(a => a) }</advice>.toString, advices._2)
   }
-
-  def _analyze(filename: String, source: String) = {
-    val temporalDirectory = new File(xitrum.Config.application.getString("xitrum.temporalDirectory"))
-    val directory = new File(temporalDirectory, "unlint-" + System.nanoTime)
-
-    if (!directory.mkdir()) {
-      throw new IllegalStateException("Unable to create temp directory " + directory.getAbsoluteFile())
-    }
-
-    try {
-      val file = new File(directory, filename)
-
-      val checkers = AdviceChecks.checksFor(filename)
-
-      if (!checkers.isEmpty) {
-        if (!new File(directory, ".git").mkdir()
-          || !new File(directory, ".hg").mkdir()
-          || !new File(directory, ".svn").mkdir()) {
-          throw new IllegalStateException("Unable to create .git|.hg|.svn file")
-        }
-
-        if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
-          throw new IllegalStateException("Unable to create source tree")
-        }
-
-        FileUtils.write(file, source, "utf8")
-      }
-
-      for (
-        checker <- checkers;
-        command = checker.toString
-      ) yield {
-        val executeString = command.replaceAll("\\$filename", file.getAbsoluteFile().toString)
-        try {
-          XML.loadString(executeString.!!)
-        } catch {
-          case e: java.lang.Throwable =>
-            val message = e.getMessage()
-            val problem = s"$filename, Problem when executing '$executeString', cause: $message"
-            throw new IllegalStateException(problem)
-        }
-      }
-    } finally {
-      FileUtils.deleteQuietly(directory)
-    }
-  }
-
 }
