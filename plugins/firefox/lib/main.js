@@ -19,14 +19,7 @@ widget.port.on("left-click", function(){
 });
  
 widget.port.on("right-click", function(){
-//    notifications.notify({
-//      title: "unlint.github.com",
-//      text: "Authentication options",
-//      iconURL: data.url("icon128.png"),
-//      onClick: function() {
-          options.show();
-//      }
-//    });
+    options.show();
 });
 
 var URL_REGEX = new RegExp("https://github.com/(.*)/(.*)/pull/([^/]*)/*");
@@ -35,11 +28,9 @@ function unlint(url) {
     var match = url.match(URL_REGEX);
     
     if (match) {
-        var username  = ss.storage.login || "";
-        var password  = ss.storage.password || "";
-        var unlintURL = ss.storage.url || "http://unlint.github.com";
-    	var link = unlintURL + "/advice.html?url="
-    		+ url + "&username=" + username + "&password=" + password;
+        var token  = ss.storage.token || "";
+    	var link = "http://unlint.org/byurl?url="
+    		+ url + "&token=" + token;
 
 		tabs.open(link);
     } else {
@@ -59,19 +50,10 @@ var options = panels.Panel({
   }
 });
 
-
 options.port.on("hide", function() {
   options.hide();
 });
 
-options.port.on("login", function(login) {
-  ss.storage.login = login || "";
-});
-
-options.port.on("password", function(password) {
-  ss.storage.password = password || "";
-});
-
-options.port.on("url", function(url) {
-  ss.storage.url = url || "http://unlint.github.com";
+options.port.on("token", function(token) {
+  ss.storage.token = token || "";
 });
