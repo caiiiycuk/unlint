@@ -3,14 +3,16 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 </head>
 <body>
-<h1>Authentication (unsafe)</h1>
-<div><div style="width: 100px; display:inline-block;">Login:</div><input type="text" id="login"/></div>
-<div><div style="width: 100px; display:inline-block;">Password:</div><input type="password" id="password"/></div>
-<div><div style="width: 100px; display:inline-block;">URL:</div><input type="url" id="url" value="http://unlint.github.com"/></div>
-<button id="save" onclick="save();">Save</button>
-<button id="cancel" onclick="close();">Cancel</button>
+<h1>Configure token for private repo</h1>
 
-<script type="text/javascript" src="options.js"></script>
+<div>
+    <div style="width: 100px; display:inline-block;">Token:</div>
+    <input type="text" id="token"/>
+
+    <button id="save" onclick="save();">Save</button>
+    <button id="cancel" onclick="close();">Cancel</button>
+    <script type="text/javascript" src="options.js"></script>
+</div>
 
 </body>
 </html>

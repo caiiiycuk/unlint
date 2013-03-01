@@ -1,7 +1,5 @@
 function onSave() {
-    self.port.emit('login', document.getElementById("login").value);
-    self.port.emit('password', document.getElementById("password").value);
-    self.port.emit('url', document.getElementById("url").value);
+    self.port.emit('token', document.getElementById("token").value);
     self.port.emit('hide');
 }
 

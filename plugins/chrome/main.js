@@ -5,12 +5,10 @@ chrome.browserAction.onClicked.addListener(function(tab) {
     var match = url.match(URL_REGEX);
     
     if (match) {
-    	var username  = localStorage['login'] || "";
-    	var password  = localStorage['password'] || "";
-        var unlintURL = localStorage['url'] || "http://unlint.github.com";
+    	var token  = localStorage['token'] || "";
         
-    	var link = unlintURL + "/advice.html?url="
-    		+ url + "&username=" + username + "&password=" + password;
+    	var link = "http://unlint.org/byurl?url="
+    		+ url + "&token=" + token;
 
 		chrome.tabs.create({'url': link});
     } else {
