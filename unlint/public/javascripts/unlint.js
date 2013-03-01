@@ -114,7 +114,7 @@ function renderAdvice(filename, source, xml, raw) {
     for (var i = 0; i < nodes.length; ++i) {
         var error = nodes[i];
         var lineError = asObject(error.attributes);
-        var lines = lineError['line'].split(',');
+        var lines = lineError['line'] ? lineError['line'].split(',') : ['1'];
         
         for (var j = 0; j < lines.length; ++j) {
             var lineNumber = parseInt(lines[j]);
