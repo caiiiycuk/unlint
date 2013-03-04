@@ -30,10 +30,12 @@ class UnlintHook extends Controller with SkipCSRFCheck {
   private val MAX_SIZE = 1024 * 70 /* 70Kb */
 
   def hookWithoutToken = POST("github/hook") {
+    respondText("Ok")
     hook(param("payload"))
   }
 
   def hookWithToken = POST("github/hook/:token") {
+    respondText("Ok")
     hook(param("payload"), param("token"))
   }
 
@@ -84,6 +86,7 @@ class UnlintHook extends Controller with SkipCSRFCheck {
 
     for (change <- engine.changes; if success) {
       val file = change.file
+      
 
       Statuses.create(pull,
         Status.pending(url, s"Checking file '$file'..."))
@@ -96,6 +99,7 @@ class UnlintHook extends Controller with SkipCSRFCheck {
         problemFile = file
         logger.debug(s"Problem in '$file', problem: $xml")
       }
+      
     }
 
     Thread.sleep(1000) // Wait while pending status applied
