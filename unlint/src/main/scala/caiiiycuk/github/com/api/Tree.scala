@@ -67,7 +67,7 @@ class Tree(pull: Pull)(implicit logger: Logger) {
         case (JString(path), JString(sha), JNothing) =>
           flat.put(parent + path, new BlobEntry(sha, None, false))
         case _ =>
-          throw new IllegalArgumentException(s"Unknown blob type '$data'")
+          throw new IllegalArgumentException(s"Unknown blob type for sha: '$treeSha', request: '$request', response: '$data'")
       }
     }
   }
