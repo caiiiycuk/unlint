@@ -9,7 +9,8 @@ my $xmlOutput = $file . ".out.xml";
 my $out = `cat $xmlOutput`;
 `rm $xmlOutput`;
 
-$out =~ s|<error severity="error" message="Expected token RPAREN but got Token\(STRING_LITERAL.*?></error>||sg;
+$out =~ s|<error\s+severity="error"\s+message="Expected token RPAREN but got Token\(STRING_LITERAL.*?</error>||sg;
+$out =~ s|<error\s+severity="error"\s+message="Expected token SEMI but got Token\(STRING_LITERAL.*?</error>||sg;
 print $out;
 
 0;
